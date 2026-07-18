@@ -3,467 +3,376 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LiversProj - McMap</title>
-    
-    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
-    
+    <title>LiversProj</title>
     <style>
-        body { 
-            margin: 0; 
-            padding: 0; 
-            background-color: #228B22; 
-            font-family: sans-serif;
-        }
-        
-        #map { 
-            width: 100vw; 
-            height: 100vh; 
-            image-rendering: pixelated;
+        :root {
+            --bg-color: #0f1115;
+            --card-bg: #1a1d24;
+            --text-main: #f0f6fc;
+            --text-muted: #8b949e;
+            --accent: #58a6ff;
+            --admin-accent: #ff7b72;
+            --hover-bg: #1f242c;
         }
 
-        /* Custom Pointer & Marker Styling */
-        #user-arrow {
-            width: 48px;
-            height: 48px;
-            transition: transform 0.1s linear; 
-            transform-origin: center center; 
-            image-rendering: pixelated; 
-            filter: drop-shadow(0px 4px 4px rgba(0,0,0,0.5));
-            position: relative;
-            z-index: 10;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
         }
 
-        .custom-marker {
-            background: transparent;
-            border: none;
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .profile-pic {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #30363d;
+            margin-bottom: 15px;
+            background-color: var(--card-bg);
+            transition: border-color 0.3s ease;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin: 0 0 10px 0;
+            letter-spacing: -0.05em;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            margin: 0;
+            font-weight: 400;
+        }
+
+        .links-section {
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            gap: 30px;
+            margin-bottom: 60px;
             align-items: center;
         }
 
-        /* Warning Banner */
-        #warning-banner {
-            display: none;
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #ff3333;
-            color: white;
-            padding: 15px 20px;
-            font-weight: bold;
-            border-radius: 8px;
-            z-index: 9999;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+        .link-group {
+            background-color: var(--card-bg);
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 24px;
+            width: 100%;
+            max-width: 450px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        .link-group h3 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
             text-align: center;
         }
 
-        /* Search Bar */
-        #search-container {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            background: white;
-            border-radius: 30px;
-            box-shadow: 0px 4px 15px rgba(0,0,0,0.2);
+        #admin-vault {
+            display: none; 
+            border-color: var(--admin-accent);
+            box-shadow: 0 0 15px rgba(255, 123, 114, 0.1);
+        }
+        
+        #admin-vault h3 {
+            color: var(--admin-accent);
+        }
+
+        .link-btn {
+            display: block;
+            background-color: var(--hover-bg);
+            color: var(--text-main);
+            text-decoration: none;
+            padding: 14px 20px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            text-align: center;
+            font-weight: 500;
+            border: 1px solid transparent;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .link-btn:last-child {
+            margin-bottom: 0;
+        }
+
+        .link-btn:hover {
+            background-color: #262c36;
+            border-color: #8b949e;
+            transform: translateY(-2px);
+        }
+
+        .gallery-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .gallery-header h3 {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
+        .gallery-header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .gallery-item {
+            position: relative;
+            padding-top: 100%;
             overflow: hidden;
-            z-index: 1000;
-            width: 90%;
-            max-width: 400px;
+            border-radius: 10px;
+            background-color: var(--card-bg);
+            border: 1px solid #30363d;
         }
 
-        #search-input {
-            flex-grow: 1;
-            border: none;
-            padding: 12px 20px;
-            font-size: 16px;
-            outline: none;
-        }
-
-        #search-btn {
-            background: #2979ff;
-            color: white;
-            border: none;
-            padding: 0 20px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        #search-btn:hover { background: #1c5fd6; }
-
-        /* Sync Indicator */
-        #loading-indicator {
+        .gallery-item img {
             position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 14px;
-            z-index: 1000;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
         }
 
-        /* Back to You Button */
-        #recenter-btn {
+        .gallery-item:hover img {
+            transform: scale(1.08);
+        }
+
+        /* CAPTION STYLES */
+        .caption-overlay {
             position: absolute;
-            bottom: 30px;
-            left: 20px;
-            background: #ffffff;
-            color: #333333;
-            border: 2px solid #cccccc;
-            padding: 12px 18px;
-            font-size: 16px;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 17, 21, 0.85);
+            color: var(--text-main);
+            padding: 12px;
+            font-size: 0.9rem;
+            text-align: center;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            backdrop-filter: blur(4px);
+            border-top: 1px solid #30363d;
+            z-index: 10;
+        }
+
+        .gallery-item:hover .caption-overlay {
+            transform: translateY(0);
+        }
+        
+        /* ADMIN SNIPPET STYLES */
+        .admin-snippet {
+            display: none; /* Hidden by default */
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: var(--admin-accent);
+            color: #000;
+            padding: 4px 8px;
+            font-size: 0.75rem;
             font-weight: bold;
-            border-radius: 30px;
-            cursor: pointer;
-            z-index: 1000;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
-            transition: background 0.2s, transform 0.1s;
+            border-radius: 4px;
+            z-index: 20;
+            user-select: all; /* Makes it easy to copy with one click */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        
+        /* When body has this class, reveal the snippets */
+        body.admin-mode-active .admin-snippet {
+            display: block;
         }
 
-        #recenter-btn:hover { background: #f0f0f0; }
-        #recenter-btn:active { transform: scale(0.95); }
+        .loading-text {
+            text-align: center;
+            grid-column: 1 / -1;
+            color: var(--text-muted);
+            padding: 40px 0;
+        }
     </style>
 </head>
 <body>
 
-    <div id="warning-banner">
-        ⚠️ BROWSER BLOCKING IMAGES!<br>
-        You must run a local web server to see custom textures.
+    <div class="container">
+        <header>
+            <img id="dynamic-pfp" class="profile-pic" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Liver B">
+            <h1>Liver B</h1>
+            <h2>Photographer / Developer</h2>
+        </header>
+
+        <div class="links-section">
+            
+            <div class="link-group" id="admin-vault">
+                <h3>Admin Vault</h3>
+                <a href="https://your-secret-link-1.com" class="link-btn" target="_blank">Secret Stash 1</a>
+                <a href="https://your-secret-link-2.com" class="link-btn" target="_blank">Secret Project</a>
+            </div>
+
+            <div class="link-group">
+                <h3>Experiments</h3>
+                <a href="/bubble" class="link-btn" target="_blank" rel="noopener noreferrer">Livers Water World</a>
+                <a href="/rpg" class="link-btn" target="_blank" rel="noopener noreferrer">The One Where You Die</a>
+                <a href="/map/index" class="link-btn" target="_blank" rel="noopener noreferrer">McMap</a>
+            </div>
+
+            <div class="link-group">
+                <h3>Socials</h3>
+                <a href="https://youtube.com/@xliv3r" class="link-btn" target="_blank" rel="noopener noreferrer">YouTube: @xliv3r</a>
+            </div>
+
+            <div class="link-group">
+                <h3>IdiotsWithKnifes</h3>
+                <a href="https://bsky.app/profile/idiots-with-knifes.itch.io" class="link-btn" target="_blank" rel="noopener noreferrer">Bluesky</a>
+                <a href="https://idiots-with-knifes.itch.io" class="link-btn" target="_blank" rel="noopener noreferrer">Itch.io</a>
+            </div>
+        </div>
+
+        <div class="gallery-section">
+            <div class="gallery-header">
+                <h3>Live Photo Stream</h3>
+                <p>Auto-synced from my mobile photo album</p>
+            </div>
+            <div class="gallery" id="gallery-container">
+                <div class="loading-text">Fetching latest photos...</div>
+            </div>
+        </div>
     </div>
 
-    <div id="search-container">
-        <input type="text" id="search-input" placeholder="Search places, addresses...">
-        <button id="search-btn">Search</button>
-    </div>
-    
-    <button id="recenter-btn">📍 Back to You</button>
-    <div id="loading-indicator">🔄 Connecting to server...</div>
-    
-    <div id="map"></div>
-    
-    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
-    
     <script>
-        // Security Check
-        if (window.location.protocol === 'file:') {
-            document.getElementById('warning-banner').style.display = 'block';
-        }
+        // --- ADMIN EASTER EGG LOGIC ---
+        let keyBuffer = "";
+        const secretCode = "adminpasswordlmao";
 
-        // Firebase Root Endpoint
-        const FIREBASE_BASE_URL = "https://device-streaming-bcd35341-default-rtdb.firebaseio.com/";
-
-        // Initialize Map
-        const map = new maplibregl.Map({
-            container: 'map',
-            style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-            center: [-77.43, 43.21], // Webster, NY area default
-            zoom: 13
+        document.addEventListener('keydown', (e) => {
+            keyBuffer += e.key.toLowerCase();
+            if (keyBuffer.length > secretCode.length) {
+                keyBuffer = keyBuffer.slice(keyBuffer.length - secretCode.length);
+            }
+            if (keyBuffer === secretCode) {
+                // Reveal the vault
+                document.getElementById('admin-vault').style.display = 'block';
+                // Highlight PFP
+                document.getElementById('dynamic-pfp').style.borderColor = '#ff7b72'; 
+                // Toggle snippet overlays on photos
+                document.body.classList.add('admin-mode-active');
+                
+                keyBuffer = ""; 
+            }
         });
 
-        const loadMapImage = (url, id) => {
-            return new Promise((resolve) => {
-                map.loadImage(url, (error, image) => {
-                    if (error) { resolve(null); } 
-                    else {
-                        map.addImage(id, image);
-                        resolve(id);
-                    }
-                });
-            });
+        // --- BACKUP CAPTION DICTIONARY ---
+        const backupPhotoCaptions = {
+            "AP1GczObmw5Uy_FA1FyPL": "Took downtown Rochester NY",
+            "AP1GczPHMyF8zrcPZcste": "Caught at lakeside diner"
         };
 
-        // Intercept layers and apply ground/water textures
-        map.on('style.load', async () => {
-            await Promise.all([
-                loadMapImage('water.png', 'custom-water'),
-                loadMapImage('grass.png', 'custom-grass')
-            ]);
-
-            const layers = map.getStyle().layers;
-
-            layers.forEach(layer => {
-                const id = layer.id.toLowerCase();
-
-                if (id.includes('water') || id.includes('river') || id.includes('lake') || id.includes('ocean')) {
-                    if (layer.type === 'fill' && map.hasImage('custom-water')) {
-                        map.setPaintProperty(layer.id, 'fill-pattern', 'custom-water');
-                        map.setPaintProperty(layer.id, 'fill-color', 'transparent');
-                    }
-                }
-                else if (id.includes('background') || id.includes('land') || id.includes('park') || id.includes('grass')) {
-                    if (map.hasImage('custom-grass')) {
-                        if (layer.type === 'background') {
-                            map.setPaintProperty(layer.id, 'background-pattern', 'custom-grass');
-                            map.setPaintProperty(layer.id, 'background-color', 'transparent');
-                        } else if (layer.type === 'fill') {
-                            map.setPaintProperty(layer.id, 'fill-pattern', 'custom-grass');
-                            map.setPaintProperty(layer.id, 'fill-color', 'transparent');
-                        }
-                    }
-                }
-            });
-            
-            // Download backend data pools after style maps compile
-            initializeServerSync();
+        // --- API FETCH LOGIC ---
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchLatestData();
         });
 
-        // ----------------------------------------------------
-        // Server Sync & Local Geometry Evaluation Engine
-        // ----------------------------------------------------
-        let globalLocationsPool = [];
-
-        async function initializeServerSync() {
-            const statusEl = document.getElementById('loading-indicator');
-            try {
-                // Fetch both city-specific nodes and full state tables simultaneously
-                const [resCities, resStates] = await Promise.all([
-                    fetch(`${FIREBASE_BASE_URL}locations.json`),
-                    fetch(`${FIREBASE_BASE_URL}state_locations.json`)
-                ]);
-
-                const dataCities = await resCities.json() || {};
-                const dataStates = await resStates.json() || {};
-
-                // Flatten all multi-city and multi-state objects into one high-performance query array
-                const processBranch = (rootNode) => {
-                    for (const branch in rootNode) {
-                        if (Array.isArray(rootNode[branch])) {
-                            globalLocationsPool.push(...rootNode[branch]);
-                        }
-                    }
-                };
-
-                processBranch(dataCities);
-                processBranch(dataStates);
-
-                statusEl.innerText = `🟢 Server Synced (${globalLocationsPool.length} places)`;
-                setTimeout(() => statusEl.style.display = 'none', 3000);
-
-                // Initial plot run across active screen bounds
-                renderActivePlaces();
-
-            } catch (err) {
-                console.error("Firebase connection broken:", err);
-                statusEl.innerText = "🔴 Server Sync Offline";
-                statusEl.style.background = "#ff3333";
-            }
-        }
-
-        function renderActivePlaces() {
-            if (globalLocationsPool.length === 0) return;
-
-            const bounds = map.getBounds();
+        async function fetchLatestData() {
+            const container = document.getElementById('gallery-container');
+            const pfpElement = document.getElementById('dynamic-pfp');
             
-            // Clean up old search marker if it left the screen view bounding context
-            if (searchMarker && !bounds.contains(searchMarker.getLngLat())) {
-                searchMarker.remove();
-                searchMarker = null;
-            }
+            const WORKER_URL = 'https://photoapi.kcanada6031-6d9.workers.dev/';
 
-            // High-speed filtering evaluating whether a point falls within viewport boundaries
-            const visibleFeatures = globalLocationsPool
-                .filter(poi => {
-                    return poi.lng >= bounds.getWest() &&
-                           poi.lng <= bounds.getEast() &&
-                           poi.lat >= bounds.getSouth() &&
-                           poi.lat <= bounds.getNorth();
-                })
-                .map(poi => {
-                    // Match fast-food categories versus standard shopping hubs
-                    const isFood = /fast_food|restaurant|cafe|food_court|pub/i.test(poi.type);
-                    return {
-                        type: 'Feature',
-                        geometry: { type: 'Point', coordinates: [poi.lng, poi.lat] },
-                        properties: {
-                            name: poi.name,
-                            market_type: isFood ? 'fast_food' : 'supermarket'
-                        }
-                    };
-                });
-
-            const geojsonData = { type: 'FeatureCollection', features: visibleFeatures };
-
-            if (map.getSource('local-places')) {
-                map.getSource('local-places').setData(geojsonData);
-            } else {
-                map.addSource('local-places', { type: 'geojson', data: geojsonData });
-
-                map.addLayer({
-                    id: 'places-dots',
-                    type: 'circle',
-                    source: 'local-places',
-                    paint: {
-                        'circle-radius': 8,
-                        'circle-color': [
-                            'match',
-                            ['get', 'market_type'],
-                            'supermarket', '#3b82f6', 
-                            'fast_food', '#ef4444',   
-                            '#ffffff'
-                        ],
-                        'circle-stroke-width': 2,
-                        'circle-stroke-color': '#ffffff'
-                    }
-                });
-
-                map.addLayer({
-                    id: 'places-labels',
-                    type: 'symbol',
-                    source: 'local-places',
-                    layout: {
-                        'text-field': ['get', 'name'],
-                        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-                        'text-size': 12,
-                        'text-offset': [0, 1.2],
-                        'text-anchor': 'top'
-                    },
-                    paint: {
-                        'text-color': '#111111',
-                        'text-halo-color': '#ffffff',
-                        'text-halo-width': 3
-                    }
-                });
-            }
-        }
-
-        // Re-render map layers using database array when the map viewport moves
-        map.on('moveend', renderActivePlaces);
-
-        // ----------------------------------------------------
-        // Search Bar Engine (Uses local server data first!)
-        // ----------------------------------------------------
-        let searchMarker = null;
-
-        const searchMarkerElement = document.createElement('div');
-        searchMarkerElement.className = 'custom-marker';
-        searchMarkerElement.innerHTML = `<img src="x.png" style="width: 32px; height: 32px; image-rendering: pixelated; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.5));" alt="X" onerror="this.style.display='none'; this.parentElement.innerHTML='❌'; this.parentElement.style.fontSize='24px';">`;
-
-        async function performSearch() {
-            const query = document.getElementById('search-input').value.trim().toLowerCase();
-            if (!query) return;
-
-            document.getElementById('search-btn').innerText = "⏳";
-
-            // 1. Local Search Check: Check if query matches an entity inside our loaded server array
-            const localMatch = globalLocationsPool.find(poi => poi.name.toLowerCase().includes(query));
-
-            if (localMatch) {
-                map.flyTo({ center: [localMatch.lng, localMatch.lat], zoom: 16 });
-                dropSearchXMarker(localMatch.lng, localMatch.lat);
-                finalizeSearchUI();
-                return;
-            }
-
-            // 2. Fallback: If not found on our server, use global Nominatim geocoder
-            const fallbackUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
             try {
-                const response = await fetch(fallbackUrl);
+                const response = await fetch(WORKER_URL);
+                if (!response.ok) throw new Error("API response error");
+                
                 const data = await response.json();
+                
+                if (data.pfpUrl) {
+                    pfpElement.src = data.pfpUrl;
+                }
 
-                if (data && data.length > 0) {
-                    const lat = parseFloat(data[0].lat);
-                    const lon = parseFloat(data[0].lon);
+                const images = data.images; 
+                container.innerHTML = ''; 
+
+                if (!images || images.length === 0) {
+                    container.innerHTML = '<div class="loading-text">No photos found in the album.</div>';
+                    return;
+                }
+
+                images.forEach(imgData => {
+                    const item = document.createElement('div');
+                    item.className = 'gallery-item';
+
+                    const img = document.createElement('img');
+                    img.src = imgData.url;
+                    img.alt = imgData.caption || 'Google Photos Update';
+                    img.loading = 'lazy';
+
+                    item.appendChild(img);
                     
-                    map.flyTo({ center: [lon, lat], zoom: 15 });
-                    dropSearchXMarker(lon, lat);
-                } else {
-                    alert("Location context not found locally or internationally.");
-                }
-            } catch (err) {
-                console.error("Global search error:", err);
-            }
-            finalizeSearchUI();
-        }
-
-        function dropSearchXMarker(lng, lat) {
-            if (searchMarker) searchMarker.remove();
-            searchMarker = new maplibregl.Marker({ element: searchMarkerElement })
-                .setLngLat([lng, lat])
-                .addTo(map);
-        }
-
-        function finalizeSearchUI() {
-            document.getElementById('search-input').value = '';
-            document.getElementById('search-btn').innerText = "Search";
-        }
-
-        document.getElementById('search-btn').addEventListener('click', performSearch);
-        document.getElementById('search-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') performSearch();
-        });
-
-        // ----------------------------------------------------
-        // Geolocation & Compass Engine
-        // ----------------------------------------------------
-        const markerElement = document.createElement('div');
-        markerElement.className = 'custom-marker';
-        markerElement.innerHTML = `<img src="mappointer.png" id="user-arrow" style="transform: rotate(0deg);" alt="Pointer">`;
-
-        let userMarker = null;
-        let currentCompassHeading = 0;
-
-        function updatePointerRotation() {
-            const arrowElement = document.getElementById('user-arrow');
-            if (arrowElement) {
-                const mapBearing = map.getBearing();
-                const finalRotation = currentCompassHeading - mapBearing;
-                arrowElement.style.transform = `rotate(${Math.round(finalRotation)}deg)`;
-            }
-        }
-
-        map.on('rotate', updatePointerRotation);
-
-        if ('geolocation' in navigator) {
-            navigator.geolocation.watchPosition(
-                (position) => {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-
-                    if (!userMarker) {
-                        userMarker = new maplibregl.Marker({ element: markerElement })
-                            .setLngLat([lng, lat])
-                            .addTo(map);
-                        map.flyTo({ center: [lng, lat], zoom: 15 });
-                    } else {
-                        userMarker.setLngLat([lng, lat]);
+                    // Extract the clean ID snippet for the admin overlay
+                    // This pulls out the ~20 character string right after "/pw/"
+                    const urlMatch = imgData.url.match(/\/pw\/([a-zA-Z0-9\-_=]{20})/);
+                    if (urlMatch && urlMatch[1]) {
+                        const snippetDiv = document.createElement('div');
+                        snippetDiv.className = 'admin-snippet';
+                        snippetDiv.textContent = urlMatch[1];
+                        item.appendChild(snippetDiv);
                     }
-                },
-                (error) => { console.warn("Location context failure: ", error.message); },
-                { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 }
-            );
-        }
 
-        if (window.DeviceOrientationEvent) {
-            window.addEventListener('deviceorientationabsolute', function(event) {
-                if (event.alpha !== null) {
-                    currentCompassHeading = 360 - event.alpha;
-                    updatePointerRotation();
-                }
-            }, true);
+                    // 1. Try to use the dynamic native caption first
+                    let finalCaption = imgData.caption;
 
-            window.addEventListener('deviceorientation', function(event) {
-                if (event.webkitCompassHeading) {
-                    currentCompassHeading = event.webkitCompassHeading;
-                    updatePointerRotation();
-                } else if (event.alpha !== null && !('ondeviceorientationabsolute' in window)) {
-                    currentCompassHeading = 360 - event.alpha;
-                    updatePointerRotation();
-                }
-            }, true);
-        }
+                    // 2. Fallback: If no native caption was found, check the backup dictionary
+                    if (!finalCaption) {
+                        for (const urlSnippet in backupPhotoCaptions) {
+                            if (imgData.url.includes(urlSnippet)) {
+                                finalCaption = backupPhotoCaptions[urlSnippet];
+                                break;
+                            }
+                        }
+                    }
 
-        document.getElementById('recenter-btn').addEventListener('click', () => {
-            if (userMarker) {
-                map.flyTo({ center: userMarker.getLngLat(), zoom: 16 });
-            } else {
-                alert("Searching for active GPS connection...");
+                    // Add the caption overlay if either method succeeded
+                    if (finalCaption) {
+                        const captionDiv = document.createElement('div');
+                        captionDiv.className = 'caption-overlay';
+                        captionDiv.textContent = finalCaption;
+                        item.appendChild(captionDiv);
+                    }
+
+                    container.appendChild(item);
+                });
+
+            } catch (error) {
+                console.error("Failed to fetch data:", error);
+                container.innerHTML = '<div class="loading-text">Unable to load live data. Showing fallback mode.</div>';
             }
-        });
+        }
     </script>
 </body>
 </html>
