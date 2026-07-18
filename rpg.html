@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LiversProj - The One Where You Die</title>
+    <style>
+        body { margin: 0; background: #222; color: white; font-family: sans-serif; overflow: hidden; touch-action: none; }
+        #game-container { position: relative; width: 100vw; height: 100vh; display: flex; flex-direction: column; }
+        #map { flex-grow: 1; position: relative; background: #333; overflow: hidden; }
+        #player { position: absolute; width: 50px; height: 50px; background: #0f0; transition: all 0.1s; z-index: 5; }
+        .enemy { position: absolute; width: 50px; height: 50px; background: #f00; z-index: 4; }
+        #ui { height: 350px; background: #000; padding: 10px; border-top: 2px solid #555; }
+        #controls { display: grid; grid-template-columns: repeat(3, 3fr); gap: 10px; padding: 10px; }
+        button { height: 60px; font-size: 18px; touch-action: manipulation; }
+        #battle-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #400; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="map">
+        <div id="player" style="left: 0; top: 0;"></div>
+        <!-- Enemies will be injected here -->
+    </div>
+    <div id="ui">
+        <div id="status">Level: 1 | Health: 100</div>
+        <div id="controls">
+            <div></div>
+            <button onclick="movePlayer(0, -50)">UP</button>
+            <button onclick="activeEnemy = spawnEnemy()">EnemyADD</button>
+            <button onclick="movePlayer(-50, 0)">LEFT</button>
+            <div></div>
+            <button onclick="movePlayer(50, 0)">RIGHT</button>
+            <button onclick="activeEnemy.el.remove()">EnemyDEL</button>
+            <button onclick="movePlayer(0, 50)">Down</button>
+            <button onclick="spellworld">Spell</button>
+        </div>
+    </div>
+</div>
+
+<div id="battle-screen">
+    <h2>WILD ENEMY APPEARED!</h2>
+    <button onclick="fight()">ATTACK</button>
+    <button onclick="run()">RUN</button>
+    <button onclick="spell()">SPELL</button>
+</div>
+
+<script>
+    let player = { x: 5, y: 5. };
+    let activeEnemy = null;
+    const playerEl = document.getElementById('player');
+    const mapEl = document.getElementById('map');
+    const battleScreen = document.getElementById('battle-screen');
+    const playerSize = 50;
+
+    // Spawn an enemy at a random location
+    function spawnEnemy() {
+        const enemy = document.createElement('div');
+        enemy.className = 'enemy';
+        const maxX = mapEl.clientWidth - 50;
+        const maxY = mapEl.clientHeight - 50;
+        const ex = Math.floor(Math.random() * (maxX / 50)) * 50;
+        const ey = Math.floor(Math.random() * (maxY / 50)) * 50;
+        
+        enemy.style.left = ex + 'px';
+        enemy.style.top = ey + 'px';
+        mapEl.appendChild(enemy);
+        return { el: enemy, x: ex, y: ey };
+    }
+
+    // Initialize one enemy
+    activeEnemy = spawnEnemy();
+
+    function movePlayer(dx, dy) {
+        const mapWidth = mapEl.clientWidth;
+        const mapHeight = mapEl.clientHeight;
+
+        player.x = Math.max(0, Math.min(mapWidth - playerSize, player.x + dx));
+        player.y = Math.max(0, Math.min(mapHeight - playerSize, player.y + dy));
+        
+        playerEl.style.left = player.x + 'px';
+        playerEl.style.top = player.y + 'px';
+
+        // Check for collision with enemy
+        if (activeEnemy && player.x === activeEnemy.x && player.y === activeEnemy.y) {
+            battleScreen.style.display = 'flex';
+        }
+    }
+
+    function fight() {
+        battleScreen.style.display = 'none';
+        // Remove and respawn enemy
+        activeEnemy.el.remove();
+        activeEnemy = spawnEnemy();
+    }
+
+function spell() {
+        battleScreen.style.display = 'none';
+        let audio = new Audio('spell.mp3');
+  audio.play();
+        // End
+        activeEnemy.el.remove();
+        activeEnemy = spawnEnemy();
+    }
+
+function spellworld() {
+        let audio = new Audio('spell.mp3');
+  audio.play();
+    }
+
+    function run() {
+        battleScreen.style.display = 'none';
+        activeEnemy.el.remove();
+        activeEnemy = spawnEnemy();
+     }
+</script>
+</body>
+</html>
+

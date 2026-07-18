@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LiversProj - Water World</title>
+    <style>
+        :root {
+            --yellow: #f8e71c;
+            --blue: #007aff;
+            --red: #ff3b30;
+            --sketch-black: #222;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--yellow);
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: none;
+        }
+
+        .sketchy {
+            border: 4px solid var(--sketch-black);
+            border-radius: 12px;
+            box-shadow: 2px 2px 0 var(--sketch-black), 
+                        -1px -1px 0 var(--sketch-black);
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.2s ease-in-out;
+            opacity: 1;
+            z-index: 10;
+        }
+
+        .screen.hidden {
+            display: none;
+            opacity: 0;
+            z-index: -10;
+        }
+
+        #main-menu-screen {
+            background: radial-gradient(circle at center, #ffffff 0%, #ffff00 100%);
+            z-index: 20;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: var(--sketch-black);
+            margin-bottom: 10px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+        }
+
+        .menu-subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            color: #555;
+            font-weight: bold;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            width: 90%;
+            max-width: 500px;
+            overflow-y: auto;
+            max-height: 60vh;
+            padding: 10px;
+        }
+
+        .menu-btn {
+            background-color: var(--blue);
+            color: white;
+            border: 3px solid var(--sketch-black);
+            padding: 15px 10px;
+            border-radius: 20px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 3px 3px 0 var(--sketch-black);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .menu-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0 var(--sketch-black);
+        }
+
+        .menu-btn.highlight {
+            background-color: #4cd964;
+            grid-column: 1 / span 2;
+            font-size: 1.4rem;
+            padding: 20px 10px;
+        }
+
+        #gameplay-screen {
+            background-color: var(--yellow);
+            justify-content: flex-start;
+        }
+
+        .header-bar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 15px 20px;
+        }
+
+        #back-btn {
+            background: white;
+            border: 3px solid var(--sketch-black);
+            color: var(--sketch-black);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            box-shadow: 2px 2px 0 var(--sketch-black);
+            height: fit-content;
+        }
+
+        #back-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 0px 0px 0 var(--sketch-black);
+        }
+
+        .stats {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--sketch-black);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        #level-title {
+            font-size: 1.3rem;
+            color: var(--blue);
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .ring-tank {
+            position: relative;
+            width: 90vw;
+            height: 55vh;
+            background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, rgba(0, 191, 255, 0.4) 100%);
+            margin-top: 10px;
+            overflow: hidden;
+            border-width: 5px;
+            transition: background 0.5s ease;
+        }
+
+        #physics-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 5; /* Keep rings above props */
+        }
+
+        .prop {
+            position: absolute;
+            border: 4px solid var(--sketch-black);
+            border-radius: 8px;
+            z-index: 2;
+        }
+
+        .ring {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            border: 4px solid var(--sketch-black);
+            box-shadow: inset 4px 4px 5px rgba(255,255,255,0.8),
+                        inset -2px -2px 4px rgba(0,0,0,0.3);
+            z-index: 6;
+            transform-origin: center center;
+        }
+
+        .bubble-fx {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            border: 2px solid var(--sketch-black);
+            background: rgba(255, 255, 255, 0.5);
+            z-index: 7;
+        }
+
+        .controls-area {
+            position: absolute;
+            bottom: 10vh;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            padding: 0 5vw;
+        }
+
+        .clock-base {
+            position: relative;
+            width: 25vw;
+            height: 25vw;
+            max-width: 120px;
+            max-height: 120px;
+            border-radius: 50%;
+            background: repeating-conic-gradient(from 0deg, 
+                var(--sketch-black) 0deg 3deg, 
+                var(--yellow) 3deg 30deg
+            );
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 4px solid var(--sketch-black);
+        }
+
+        .push-btn {
+            position: absolute;
+            width: 70%;
+            height: 70%;
+            border-radius: 50%;
+            border: 4px solid var(--sketch-black);
+            cursor: pointer;
+            box-shadow: inset 2px 2px 5px rgba(255,255,255,0.5), 
+                        3px 3px 0 rgba(0,0,0,0.8);
+            transition: transform 0.05s, box-shadow 0.05s;
+            z-index: 10;
+        }
+
+        .clock-base.red .push-btn { background-color: var(--red); }
+        .clock-base.blue .push-btn { background-color: var(--blue); }
+
+        .push-btn:active {
+            transform: translate(3px, 3px);
+            box-shadow: inset 2px 2px 5px rgba(255,255,255,0.5), 
+                        0px 0px 0 rgba(0,0,0,0.8);
+        }
+
+        .clock-base::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-bottom: 15px solid var(--sketch-black);
+            top: 5px;
+            z-index: 9;
+        }
+
+    </style>
+</head>
+<body>
+
+    <audio id="sfx-bloop" src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA" preload="auto"></audio>
+
+    <div id="main-menu-screen" class="screen">
+        <h1>Livers<br>Water World</h1>
+        <div class="menu-subtitle">12 Games in 1!</div>
+        
+        <div class="menu-grid">
+            <button class="menu-btn highlight" onclick="startGame(1)">1. Raft Balance</button>
+            <button class="menu-btn" onclick="startGame(2)">2. Tidal Surfer</button>
+            <button class="menu-btn" onclick="startGame(3)">3. Whale Tap</button>
+            <button class="menu-btn" onclick="startGame(4)">4. Treasure Diver</button>
+            <button class="menu-btn" onclick="startGame(5)">5. Bubble Pop</button>
+            <button class="menu-btn" onclick="startGame(6)">6. Current Chase</button>
+            <button class="menu-btn" onclick="startGame(7)">7. Kai Feeding</button>
+            <button class="menu-btn" onclick="startGame(8)">8. Lighthouse</button>
+            <button class="menu-btn" onclick="startGame(9)">9. Geyser Guess</button>
+            <button class="menu-btn" onclick="startGame(10)">10. River Run</button>
+            <button class="menu-btn" onclick="startGame(11)">11. Iceberg Dodge</button>
+            <button class="menu-btn" onclick="startGame(12)">12. Sub Search</button>
+        </div>
+    </div>
+
+    <div id="gameplay-screen" class="screen hidden">
+        
+        <div class="header-bar">
+            <button id="back-btn" onclick="showMenu()">← Menu</button>
+            <div class="stats">
+                <span id="level-title">Level 1</span>
+                <span id="score-text">Score: 0</span>
+                <span id="time-text">Time: 00:00</span>
+            </div>
+        </div>
+
+        <div class="ring-tank sketchy" id="game-tank">
+            <!-- Props injected here dynamically via JS -->
+            <div id="physics-container"></div>
+        </div>
+
+        <div class="controls-area">
+            <div class="clock-base red">
+                <div class="push-btn" id="btn-left"></div>
+            </div>
+            <div class="clock-base blue">
+                <div class="push-btn" id="btn-right"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const mainMenu = document.getElementById('main-menu-screen');
+        const gameScreen = document.getElementById('gameplay-screen');
+        const container = document.getElementById('physics-container');
+        const tank = document.getElementById('game-tank');
+        const scoreText = document.getElementById('score-text');
+        const timeText = document.getElementById('time-text');
+        const titleText = document.getElementById('level-title');
+        const btnLeft = document.getElementById('btn-left');
+        const btnRight = document.getElementById('btn-right');
+        const sfxBloop = document.getElementById('sfx-bloop');
+
+        let entities = [];
+        let score = 0;
+        let startTime = 0;
+        let gameLoopId = null;
+        let lastTimestamp = 0;
+        let tankWidth = 0;
+        let tankHeight = 0;
+        let currentLevelConfig = null;
+        
+        const ringColors = ['#ff3b30', '#ffcc00', '#4cd964', '#5ac8fa', '#ff2d55', '#007aff'];
+
+        // Define the 12 distinct game configurations
+        // Grav: determines how fast rings sink (lower is floatier)
+        // Force: determines button push strength
+        // CurX: applies constant horizontal drift
+        const levels = {
+            1: { name: "Raft Balance", rings: 10, grav: 10, force: 14, curX: 0, bg: "linear-gradient(180deg, rgba(255,255,255,0.3) 0%, rgba(0, 191, 255, 0.4) 100%)", layout: 1, size: 1 },
+            2: { name: "Tidal Surfer", rings: 12, grav: 8, force: 18, curX: 40, bg: "linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(0, 150, 200, 0.6) 100%)", layout: 2, size: 1 },
+            3: { name: "Whale Tap", rings: 6, grav: 5, force: 12, curX: 0, bg: "linear-gradient(180deg, rgba(200,255,255,0.4) 0%, rgba(0, 100, 255, 0.5) 100%)", layout: 3, size: 1.5 },
+            4: { name: "Treasure Diver", rings: 18, grav: 16, force: 12, curX: 0, bg: "linear-gradient(180deg, rgba(255,215,0,0.3) 0%, rgba(0, 128, 128, 0.6) 100%)", layout: 1, size: 0.8 },
+            5: { name: "Bubble Pop", rings: 25, grav: 2, force: 8, curX: 0, bg: "linear-gradient(180deg, rgba(255,192,203,0.3) 0%, rgba(255,105,180,0.5) 100%)", layout: 4, size: 0.6 },
+            6: { name: "Current Chase", rings: 10, grav: 8, force: 14, curX: 90, bg: "linear-gradient(180deg, rgba(224,255,255,0.3) 0%, rgba(32,178,170,0.5) 100%)", layout: 2, size: 1 },
+            7: { name: "Kai Feeding", rings: 8, grav: 12, force: 15, curX: -60, bg: "linear-gradient(180deg, rgba(152,251,152,0.3) 0%, rgba(46,139,87,0.6) 100%)", layout: 3, size: 1 },
+            8: { name: "Lighthouse", rings: 7, grav: 9, force: 16, curX: 0, bg: "linear-gradient(180deg, rgba(255,250,205,0.4) 0%, rgba(70,130,180,0.7) 100%)", layout: 5, size: 1 },
+            9: { name: "Geyser Guess", rings: 14, grav: 14, force: 25, curX: 0, bg: "linear-gradient(180deg, rgba(240,255,255,0.5) 0%, rgba(0,206,209,0.6) 100%)", layout: 4, size: 0.9 },
+            10: { name: "River Run", rings: 12, grav: 10, force: 14, curX: 120, bg: "linear-gradient(180deg, rgba(240,248,255,0.4) 0%, rgba(65,105,225,0.6) 100%)", layout: 2, size: 1 },
+            11: { name: "Iceberg Dodge", rings: 16, grav: 6, force: 10, curX: 0, bg: "linear-gradient(180deg, rgba(255,250,250,0.6) 0%, rgba(176,224,230,0.8) 100%)", layout: 6, size: 0.7 },
+            12: { name: "Sub Search", rings: 5, grav: 20, force: 18, curX: 0, bg: "linear-gradient(180deg, rgba(105,105,105,0.4) 0%, rgba(25,25,112,0.9) 100%)", layout: 6, size: 1.2 }
+        };
+
+        function buildProps(layoutId) {
+            // Clean up old props
+            document.querySelectorAll('.prop').forEach(p => p.remove());
+            let html = '';
+            
+            if (layoutId === 1) { // Default Chairs
+                html = `<div class="prop" style="left: 20%; bottom: 5%; width: 12vw; height: 12vh; background: var(--red);"></div>
+                        <div class="prop" style="right: 20%; bottom: 5%; width: 12vw; height: 12vh; background: var(--blue);"></div>`;
+            } else if (layoutId === 2) { // Center Pillar
+                html = `<div class="prop" style="left: 45%; bottom: 5%; width: 10vw; height: 35vh; background: var(--sketch-black);"></div>`;
+            } else if (layoutId === 3) { // 3 Small Pegs
+                html = `<div class="prop" style="left: 15%; bottom: 5%; width: 6vw; height: 15vh; background: #4cd964;"></div>
+                        <div class="prop" style="left: 47%; bottom: 5%; width: 6vw; height: 20vh; background: #4cd964;"></div>
+                        <div class="prop" style="right: 15%; bottom: 5%; width: 6vw; height: 15vh; background: #4cd964;"></div>`;
+            } else if (layoutId === 4) { // Floating Platforms
+                html = `<div class="prop" style="left: 10%; bottom: 30%; width: 20vw; height: 4vh; background: #ff9500;"></div>
+                        <div class="prop" style="right: 10%; bottom: 45%; width: 20vw; height: 4vh; background: #ff9500;"></div>`;
+            } else if (layoutId === 5) { // Lighthouse (one big tower)
+                html = `<div class="prop" style="left: 30%; bottom: 5%; width: 40vw; height: 8vh; background: #fff;"></div>
+                        <div class="prop" style="left: 40%; bottom: 13%; width: 20vw; height: 30vh; background: #ff3b30;"></div>`;
+            } else if (layoutId === 6) { // Debris/Icebergs
+                html = `<div class="prop" style="left: 10%; bottom: 10%; width: 10vw; height: 10vh; background: #fff; border-color: #999;"></div>
+                        <div class="prop" style="left: 45%; bottom: 25%; width: 12vw; height: 12vh; background: #fff; border-color: #999;"></div>
+                        <div class="prop" style="right: 15%; bottom: 15%; width: 15vw; height: 8vh; background: #fff; border-color: #999;"></div>`;
+            }
+            
+            // Insert behind the physics container
+            tank.insertAdjacentHTML('afterbegin', html);
+        }
+
+        function showMenu() {
+            cancelAnimationFrame(gameLoopId);
+            gameScreen.classList.add('hidden');
+            mainMenu.classList.remove('hidden');
+            container.innerHTML = '';
+            entities = [];
+        }
+
+        function startGame(gameNumber) {
+            currentLevelConfig = levels[gameNumber];
+            
+            // Apply level aesthetics
+            titleText.innerText = currentLevelConfig.name;
+            tank.style.background = currentLevelConfig.bg;
+            buildProps(currentLevelConfig.layout);
+
+            mainMenu.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            
+            setTimeout(() => {
+                tankWidth = container.clientWidth;
+                tankHeight = container.clientHeight;
+                
+                score = 0;
+                startTime = Date.now();
+                updateUI();
+                
+                // Spawn rings based on level config
+                for(let i = 0; i < currentLevelConfig.rings; i++) {
+                    spawnEntity(Math.random() * tankWidth, Math.random() * tankHeight, false, 0, 0, currentLevelConfig.size);
+                }
+
+                lastTimestamp = performance.now();
+                gameLoopId = requestAnimationFrame(gameLoop);
+            }, 50);
+        }
+
+        function spawnEntity(x, y, isBubble = false, forceY = 0, forceX = 0, scaleMultiplier = 1) {
+            const el = document.createElement('div');
+            const radius = isBubble ? (5 + Math.random() * 8) : ((15 + Math.random() * 15) * scaleMultiplier);
+            
+            if (isBubble) {
+                el.className = 'bubble-fx';
+                el.style.width = `${radius * 2}px`;
+                el.style.height = `${radius * 2}px`;
+            } else {
+                el.className = 'ring';
+                const color = ringColors[Math.floor(Math.random() * ringColors.length)];
+                el.style.width = `${radius * 2}px`;
+                el.style.height = `${radius * 2}px`;
+                el.style.background = `radial-gradient(circle, transparent 40%, ${color} 45%)`;
+            }
+            
+            container.appendChild(el);
+
+            entities.push({
+                el: el,
+                r: radius,
+                x: x,
+                y: y,
+                vx: forceX + (Math.random() - 0.5) * 2,
+                vy: forceY + (Math.random() * 2),
+                isBubble: isBubble
+            });
+        }
+
+        function pushWater(side) {
+            if(sfxBloop.readyState >= 2) {
+                sfxBloop.currentTime = 0;
+                sfxBloop.play().catch(e => {}); 
+            }
+
+            const pushX = side === 'left' ? tankWidth * 0.25 : tankWidth * 0.75;
+            const pushForce = currentLevelConfig.force;
+            
+            entities.forEach(ent => {
+                const dx = ent.x - pushX;
+                const dy = tankHeight - ent.y;
+                
+                if (dy < tankHeight * 0.9 && Math.abs(dx) < tankWidth * 0.6) {
+                    ent.vy -= (pushForce + Math.random() * (pushForce * 0.5)); 
+                    ent.vx += (dx * 0.05); 
+                }
+            });
+
+            // Decorate bubbles
+            for(let i = 0; i < 3; i++) {
+                spawnEntity(pushX + (Math.random()-0.5)*20, tankHeight, true, -(15 + Math.random()*15), (Math.random()-0.5)*5);
+            }
+        }
+
+        function gameLoop(timestamp) {
+            const dt = (timestamp - lastTimestamp) / 1000 || 0.016;
+            lastTimestamp = timestamp;
+
+            const gravity = currentLevelConfig.grav; 
+            const waterFriction = 0.96; 
+            const horizontalCurrent = currentLevelConfig.curX * dt;
+
+            for (let i = entities.length - 1; i >= 0; i--) {
+                let ent = entities[i];
+
+                if (ent.isBubble) {
+                    ent.vy -= 120 * dt; 
+                } else {
+                    // Extremely low gravity creates a floating/slow sink effect
+                    ent.vy += gravity * dt; 
+                    // Add current flow and a slight sine wave for organic water bobbing
+                    ent.vx += Math.sin(timestamp * 0.002 + ent.r) * 0.05 + horizontalCurrent;
+                }
+
+                ent.vx *= waterFriction;
+                ent.vy *= waterFriction;
+
+                ent.x += ent.vx;
+                ent.y += ent.vy;
+
+                // Wall Collisions
+                if (ent.x < 0) { ent.x = 0; ent.vx *= -0.6; }
+                if (ent.x > tankWidth - ent.r * 2) { ent.x = tankWidth - ent.r * 2; ent.vx *= -0.6; }
+                
+                // Floor Collision
+                if (ent.y > tankHeight - ent.r * 2) { 
+                    ent.y = tankHeight - ent.r * 2; 
+                    ent.vy *= -0.4; 
+                    ent.vx *= 0.90;
+                }
+
+                // Ceiling Collision
+                if (ent.y < 0) {
+                    if (ent.isBubble) {
+                        ent.el.remove();
+                        entities.splice(i, 1);
+                        continue;
+                    } else {
+                        ent.y = 0;
+                        ent.vy *= -0.5; // Bounce gently off the top surface
+                    }
+                }
+
+                ent.el.style.transform = `translate(${ent.x}px, ${ent.y}px)`;
+            }
+
+            updateUI();
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        function updateUI() {
+            scoreText.innerText = `Score: ${score}`;
+            if (startTime > 0) {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                const s = String(elapsed % 60).padStart(2, '0');
+                timeText.innerText = `Time: ${m}:${s}`;
+            }
+        }
+
+        btnLeft.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            pushWater('left');
+        });
+
+        btnRight.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            pushWater('right');
+        });
+    </script>
+</body>
+</html>
+

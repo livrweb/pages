@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LiversProj - CardThing</title>
+    
+    <!-- Firebase SDK (Compat version for simple single-file implementation) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --panel-bg: #1e1e1e;
+            --primary: #bb86fc;
+            --success: #03dac6;
+            --danger: #cf6679;
+            --text-main: #e0e0e0;
+            --text-muted: #888;
+            --card-bg: #2a2a2a;
+            --border-radius: 8px;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        h1 {
+            color: var(--primary);
+            margin: 0 0 5px 0;
+            font-size: clamp(1.5rem, 5vw, 2rem);
+        }
+
+        .db-status {
+            font-size: 0.85em;
+            color: var(--danger);
+            font-weight: bold;
+        }
+
+        /* Pack Selector */
+        .pack-section {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .pack-btn {
+            background: #333;
+            color: #fff;
+            border: 2px solid #555;
+            padding: 8px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            flex: 1 1 auto;
+            max-width: 160px;
+            text-align: center;
+        }
+
+        .pack-btn:hover {
+            background: #444;
+            border-color: var(--primary);
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1100px;
+        }
+
+        /* Live Card Render */
+        .card-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .card {
+            background: var(--card-bg);
+            width: 260px;
+            height: 360px;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            border: 4px solid #444;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .card-hp { color: #ff5555; }
+
+        .card-art-container {
+            width: 100%;
+            height: 140px;
+            background: #111;
+            border: 2px solid #555;
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        .card-art-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .card-body {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: #222;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .attack-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .attack-cost {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            max-width: 80px;
+        }
+
+        .energy-pip {
+            width: 16px;
+            height: 16px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .attack-name {
+            font-weight: bold;
+            flex-grow: 1;
+            margin-left: 10px;
+        }
+
+        .attack-damage {
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        /* Editor & Controls panels */
+        .panel {
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .panel h3 {
+            margin-top: 0;
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .control-group { margin-bottom: 15px; }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        /* Added font-size: 16px to prevent iOS auto-zoom on focus */
+        .control-group input[type="text"], 
+        .control-group input[type="color"],
+        .control-group select {
+            width: 100%;
+            padding: 10px 8px;
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px; 
+        }
+
+        .control-group input[type="color"] {
+            height: 40px;
+            padding: 2px 4px;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            accent-color: var(--primary);
+            height: 25px;
+        }
+
+        .val-display {
+            float: right;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .formula-box {
+            background: #111;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid var(--primary);
+            font-family: monospace;
+            margin-top: 20px;
+        }
+
+        .formula-result {
+            font-size: 1.5em;
+            color: var(--primary);
+            margin-top: 10px;
+            text-align: right;
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            background: var(--primary);
+            color: #000;
+            font-size: 1rem;
+        }
+
+        .action-btn.save { background: var(--success); }
+        .action-btn.load { background: #ff9800; }
+        .action-btn:hover { filter: brightness(1.1); }
+
+        /* ========================================= */
+        /* RESPONSIVE MEDIA QUERIES FOR MOBILE VIEWS */
+        /* ========================================= */
+        @media (max-width: 900px) {
+            .workspace {
+                grid-template-columns: 1fr;
+                gap: 30px;
+                max-width: 400px;
+            }
+            
+            /* Moves the live card preview to the top on mobile devices */
+            .card-container {
+                order: -1; 
+            }
+
+            .pack-section {
+                gap: 10px;
+            }
+
+            .pack-btn {
+                flex: 1 1 45%; /* Buttons take up half row on small screens */
+                max-width: none;
+                padding: 10px;
+            }
+
+            body {
+                padding: 15px 10px; /* Reduces side gutters on very small screens */
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Livers CardThing.</h1>
+        <p>Make Legally Distinct Creatures not at all like anything make by Game Freak, Nintendo.</p>
+        <div class="db-status" id="dbStatus">Server Not Configured</div>
+    </header>
+
+    <!-- The 5 Built-in Packs -->
+    <div class="pack-section">
+        <button class="pack-btn" onclick="loadPack(0)">Pack 1: Starter</button>
+        <button class="pack-btn" onclick="loadPack(1)">Pack 2: Inferno</button>
+        <button class="pack-btn" onclick="loadPack(2)">Pack 3: Deep Sea</button>
+        <button class="pack-btn" onclick="loadPack(3)">Pack 4: Void</button>
+        <button class="pack-btn" onclick="loadPack(4)">Pack 5: Mecha</button>
+    </div>
+
+    <div class="workspace">
+        <!-- Custom Builder -->
+        <div class="panel">
+            <h3>Custom Builder</h3>
+            <div class="control-group">
+                <label>Card Name</label>
+                <input type="text" id="inName" value="Custom Asset">
+            </div>
+            <div class="control-group">
+                <label>Attack Name</label>
+                <input type="text" id="inAttack" value="Test Attack">
+            </div>
+            <div class="control-group">
+                <label>Theme Color</label>
+                <input type="color" id="inColor" value="#bb86fc">
+            </div>
+            <div class="control-group">
+                <label>Image URL (Optional)</label>
+                <input type="text" id="inImage" placeholder="https://...">
+            </div>
+            
+            <hr style="border: 0; border-top: 1px solid #444; margin: 20px 0;">
+            
+            <h3>Hub</h3>
+            <button class="action-btn save" onclick="saveToFirebase()">Save Current to Firebase</button>
+            
+            <div class="control-group" style="margin-top: 15px;">
+                <label>Load from Server</label>
+                <select id="dbDropdown">
+                    <option value="">-- Select Saved Card --</option>
+                </select>
+            </div>
+            <button class="action-btn load" onclick="loadFromFirebase()">Load Selected</button>
+        </div>
+
+        <!-- Panel 2: Live Card Render (Jumps to top on mobile) -->
+        <div class="card-container">
+            <div class="card" id="cardRender">
+                <div class="card-header">
+                    <span id="renderName">Custom Asset</span>
+                    <span class="card-hp">HP <span id="renderHp">100</span></span>
+                </div>
+                <div class="card-art-container">
+                    <img id="renderArt" src="https://via.placeholder.com/260x140/111111/444444?text=No+Image" alt="Card Art" />
+                </div>
+                <div class="card-body">
+                    <div class="attack-row">
+                        <div class="attack-cost" id="renderCost">
+                            <span class="energy-pip"></span>
+                        </div>
+                        <span class="attack-name" id="renderAttackName">Test Attack</span>
+                        <span class="attack-damage" id="renderDamage">30</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stat Balancer & Formula Engine -->
+        <div class="panel">
+            <h3>Live Balancer</h3>
+            
+            <div class="control-group">
+                <label>Max HP <span class="val-display" id="hpVal">100</span></label>
+                <input type="range" id="hpSlider" min="30" max="250" step="10" value="100">
+            </div>
+
+            <div class="control-group">
+                <label>Base Damage <span class="val-display" id="dmgVal">30</span></label>
+                <input type="range" id="dmgSlider" min="10" max="150" step="10" value="30">
+            </div>
+
+            <div class="formula-box">
+                <div><strong>Mechanical Formula: Energy Cost</strong></div>
+                <div style="color: #888; font-size: 0.9em; margin-top: 5px;">
+                    Cost = ceil(Damage / 30) + (HP > 120 ? 1 : 0)
+                </div>
+                <div class="formula-result">
+                    Required Energy: <span id="calcResult">1</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. FIREBASE CONFIGURATION
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyFakeKey_ForInitializationOnly",
+            authDomain: "randomass-d006a.firebaseapp.com",
+            databaseURL: "https://randomass-d006a-default-rtdb.firebaseio.com",
+            projectId: "randomass-d006a",
+            storageBucket: "randomass-d006a.appspot.com",
+            messagingSenderId: "1234567890",
+            appId: "1:1234567890:web:abcdef123456"
+        };
+
+        let database;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+            document.getElementById('dbStatus').textContent = "🟢 Connected";
+            document.getElementById('dbStatus').style.color = "var(--success)";
+            
+            // Listen for changes in DB to populate dropdown
+            database.ref('customCards').on('value', (snapshot) => {
+                const dropdown = document.getElementById('dbDropdown');
+                dropdown.innerHTML = '<option value="">-- Select Saved Card --</option>'; // Reset
+                snapshot.forEach((childSnapshot) => {
+                    const key = childSnapshot.key;
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = key;
+                    dropdown.appendChild(option);
+                });
+            });
+
+        } catch (e) {
+            console.error("Firebase init failed:", e);
+        }
+
+        // ==========================================
+        // 2. THE 5 BUILT-IN ASSET PACKS
+        // ==========================================
+        const packs = [
+            { name: "Squire Bot", hp: 80, attackName: "Basic Slash", attackDamage: 20, typeColor: "#aaaaaa", image: "https://i.imgur.com/gOhoICf.jpeg" },
+            { name: "Flame Drake", hp: 110, attackName: "Hellfire", attackDamage: 90, typeColor: "#ff4444", image: "https://i.imgur.com/aqTVoZn.jpeg" },
+            { name: "Trench Leviathan", hp: 180, attackName: "Tidal Crash", attackDamage: 40, typeColor: "#33b5e5", image: "https://i.imgur.com/ozBOfqG.jpeg" },
+            { name: "Void Phantom", hp: 130, attackName: "Null Strike", attackDamage: 120, typeColor: "#bb86fc", image: "https://i.imgur.com/kRvY0dP.jpeg" },
+            { name: "Mecha Goliath", hp: 250, attackName: "Core Beam", attackDamage: 150, typeColor: "#ffbb33", image: "https://i.imgur.com/K2xOPf2.jpeg" }
+        ]; 
+
+        // ==========================================
+        // 3. STATE & DOM ELEMENTS
+        // ==========================================
+        let currentCard = { ...packs[0] }; // Default to pack 1
+
+        const els = {
+            name: document.getElementById('renderName'),
+            hp: document.getElementById('renderHp'),
+            attack: document.getElementById('renderAttackName'),
+            damage: document.getElementById('renderDamage'),
+            cost: document.getElementById('renderCost'),
+            art: document.getElementById('renderArt'),
+            cardBorder: document.getElementById('cardRender'),
+            hpVal: document.getElementById('hpVal'),
+            dmgVal: document.getElementById('dmgVal'),
+            calc: document.getElementById('calcResult'),
+            // Inputs
+            inName: document.getElementById('inName'),
+            inAttack: document.getElementById('inAttack'),
+            inColor: document.getElementById('inColor'),
+            inImage: document.getElementById('inImage'),
+            hpSlider: document.getElementById('hpSlider'),
+            dmgSlider: document.getElementById('dmgSlider')
+        };
+
+        // ==========================================
+        // 4. CORE LOGIC
+        // ==========================================
+        function calculateEnergyCost(damage, hp) {
+            let baseCost = Math.ceil(damage / 30);
+            let hpPenalty = hp > 120 ? 1 : 0;
+            let totalCost = baseCost + hpPenalty;
+            return totalCost < 1 ? 1 : totalCost; // Minimum 1 energy
+        }
+
+        function updateUI() {
+            // Text Elements
+            els.name.textContent = currentCard.name;
+            els.hp.textContent = currentCard.hp;
+            els.attack.textContent = currentCard.attackName;
+            els.damage.textContent = currentCard.attackDamage;
+            
+            // Sync Input fields
+            els.inName.value = currentCard.name;
+            els.inAttack.value = currentCard.attackName;
+            els.inColor.value = currentCard.typeColor;
+            els.inImage.value = currentCard.image || "";
+            els.hpSlider.value = currentCard.hp;
+            els.dmgSlider.value = currentCard.attackDamage;
+            els.hpVal.textContent = currentCard.hp;
+            els.dmgVal.textContent = currentCard.attackDamage;
+
+            // Handle Image
+            els.art.src = currentCard.image || "https://via.placeholder.com/260x140/111111/444444?text=No+Image";
+
+            // Math Formula
+            const energyCost = calculateEnergyCost(currentCard.attackDamage, currentCard.hp);
+            els.calc.textContent = energyCost;
+
+            // Render Energy Pips & Border
+            els.cost.innerHTML = '';
+            for(let i = 0; i < energyCost; i++) {
+                let pip = document.createElement('span');
+                pip.className = 'energy-pip';
+                pip.style.backgroundColor = currentCard.typeColor || '#bb86fc';
+                els.cost.appendChild(pip);
+            }
+            els.cardBorder.style.borderColor = currentCard.typeColor || '#444';
+        }
+
+        function loadPack(index) {
+            currentCard = { ...packs[index] };
+            updateUI();
+        }
+
+        // ==========================================
+        // 5. EVENT LISTENERS FOR BUILDER & BALANCER
+        // ==========================================
+        els.inName.addEventListener('input', e => { currentCard.name = e.target.value; updateUI(); });
+        els.inAttack.addEventListener('input', e => { currentCard.attackName = e.target.value; updateUI(); });
+        els.inColor.addEventListener('input', e => { currentCard.typeColor = e.target.value; updateUI(); });
+        els.inImage.addEventListener('input', e => { currentCard.image = e.target.value; updateUI(); });
+        
+        els.hpSlider.addEventListener('input', e => { currentCard.hp = parseInt(e.target.value); updateUI(); });
+        els.dmgSlider.addEventListener('input', e => { currentCard.attackDamage = parseInt(e.target.value); updateUI(); });
+
+        // ==========================================
+        // 6. FIREBASE SAVE & LOAD FUNCTIONS
+        // ==========================================
+        function saveToFirebase() {
+            if(!database) return alert("Firebase is not configured yet!");
+            
+            // Clean up the name to use as a database key
+            const dbKey = currentCard.name.trim().replace(/[.#$\[\]]/g, "_") || "Unnamed_Card";
+            
+            database.ref('customCards/' + dbKey).set(currentCard)
+                .then(() => alert(`"${currentCard.name}" saved to Firebase! 🚀`))
+                .catch((error) => {
+                    console.error("Save error:", error);
+                    alert("Failed to save. Check console for Firebase rules/connection errors.");
+                });
+        }
+
+        function loadFromFirebase() {
+            if(!database) return alert("Firebase is not configured yet!");
+            
+            const selectedKey = document.getElementById('dbDropdown').value;
+            if(!selectedKey) return alert("Please select a card from the dropdown to load.");
+
+            database.ref('customCards/' + selectedKey).once('value')
+                .then((snapshot) => {
+                    if(snapshot.exists()) {
+                        currentCard = snapshot.val();
+                        updateUI();
+                    } else {
+                        alert("Card data not found.");
+                    }
+                })
+                .catch(error => console.error("Load error:", error));
+        }
+
+        // Init
+        updateUI();
+
+    </script>
+</body>
+</html>
+
