@@ -587,6 +587,21 @@ async function fetchLatestData(container, pfpElement) {
       img.src = cleanUrl;
       img.alt = imgData.caption || 'Google Photos Update';
       img.loading = 'lazy';
+
+      // Google's CDN occasionally drops a request when many images load in
+      // parallel (rate limiting / transient network blip), leaving the
+      // browser showing alt text instead of the photo. Retry a couple of
+      // times with a short delay before giving up, since a plain reload
+      // almost always succeeds.
+      let retries = 0;
+      img.addEventListener('error', () => {
+        if (retries >= 2) return;
+        retries += 1;
+        setTimeout(() => {
+          img.src = `${cleanUrl}${cleanUrl.includes('?') ? '&' : '?'}retry=${retries}-${Date.now()}`;
+        }, 600 * retries);
+      });
+
       item.appendChild(img);
 
       const urlMatch = cleanUrl.match(/\/pw\/([a-zA-Z0-9\-_=]{20})/);

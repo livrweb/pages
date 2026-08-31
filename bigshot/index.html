@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<!-- you shouldn't have come back. he was hoping you would. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>...</title>
+<!-- the title is blank on purpose. some things don't get names. -->
+<style>
+  html, body{
+    margin:0;
+    height:100%;
+    background:#000;
+    overflow:hidden;
+  }
+  body{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  #scene{
+    position:relative;
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  #scene img{
+    image-rendering:pixelated;
+    image-rendering:-moz-crisp-edges;
+    image-rendering:crisp-edges;
+    display:block;
+    user-select:none;
+    -webkit-user-drag:none;
+  }
+  #store{
+    /* base size was min(60vmin, 420px); this is that x1.4 */
+    width:min(84vmin, 588px);
+    height:auto;
+    display:block;
+    position:relative;
+    z-index:3;
+  }
+  #dialogue{
+    display:none;
+    position:relative;
+    margin-top:10px;
+    width:min(80vw, 598px);
+    height:auto;
+    z-index:2;
+  }
+  .hint{
+    position:fixed;
+    bottom:22px;
+    left:0; right:0;
+    text-align:center;
+    color:#3a3a3a;
+    font-family:'Courier New', monospace;
+    font-size:12px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  a.back{
+    position:fixed;
+    top:18px; left:18px;
+    color:#333;
+    font-family:'Courier New', monospace;
+    font-size:12px;
+    text-decoration:none;
+    letter-spacing:.05em;
+  }
+  a.back:hover{ color:#888; }
+</style>
+</head>
+<body>
+
+<a class="back" href="/">&larr; back</a>
+
+<div id="scene">
+  <img id="store" src="store.png" alt="a shop, empty, waiting">
+  <img id="dialogue" src="" alt="dialogue box">
+</div>
+<div class="hint" id="hint">* ...</div>
+<audio id="bigshot-audio" src="spamton.ogg" loop preload="auto"></audio>
+
+<script>
+  const dialogue = document.getElementById('dialogue');
+  const hint = document.getElementById('hint');
+  const audio = document.getElementById('bigshot-audio');
+
+  // duration each gif plays before advancing to the next stage.
+  // these are placeholders — set them to match the actual runtime of
+  // bigshot1.gif and bigshot2.gif so the handoff lines up cleanly.
+  const STAGE1_MS = 4000; // how long bigshot1.gif plays
+  const STAGE2_MS = 4000; // how long bigshot2.gif plays after that
+
+  let started = false;
+  // this number should be small. if it isn't, ask yourself why.
+  let clickCount = 0;
+
+  function markFound() {
+    try {
+      // still flips the site-wide egg flag — every easter egg this page
+      // unlocks (photo swap, nav, etc.) still fires from here too.
+      localStorage.setItem('eggFound', 'true');
+      localStorage.setItem('eggFoundAt', String(Date.now()));
+
+      // its own separate tag, distinct from the tree encounter, in case
+      // anything downstream wants to know specifically that THIS page
+      // was the one that got found.
+      localStorage.setItem('bigshotFound', 'true');
+      localStorage.setItem('bigshotFoundAt', String(Date.now()));
+    } catch (e) {}
+  }
+
+  function playSequence() {
+    if (started) return;
+    started = true;
+
+    hint.textContent = '* ...';
+
+    // cache-bust so the gif always restarts from frame 1
+    dialogue.src = 'bigshot1.gif?play=' + Date.now();
+    dialogue.style.display = 'block';
+
+    setTimeout(() => {
+      dialogue.src = 'bigshot2.gif?play=' + Date.now();
+    }, STAGE1_MS);
+
+    setTimeout(() => {
+      hint.style.display = 'none';
+    }, 600);
+
+    // once both stages have played through, freeze on the static png
+    // instead of looping forever (spamton.ogg keeps looping on its own)
+    setTimeout(() => {
+      dialogue.src = 'bigshotend.png';
+    }, STAGE1_MS + STAGE2_MS);
+  }
+
+  function tryAutoplay() {
+    audio.currentTime = 0;
+    const playPromise = audio.play();
+    if (playPromise && playPromise.catch) {
+      playPromise
+        .then(() => {
+          markFound();
+          playSequence();
+        })
+        .catch(() => {
+          // autoplay with sound blocked until a real user gesture happens —
+          // show a hint and fall back to click-to-start.
+          hint.textContent = '* [ CLICK ]';
+        });
+    } else {
+      markFound();
+      playSequence();
+    }
+  }
+
+  document.getElementById('scene').addEventListener('click', () => {
+    clickCount++;
+    if (started) return;
+    markFound();
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+    playSequence();
+  });
+
+  window.addEventListener('DOMContentLoaded', tryAutoplay);
+</script>
+</body>
+</html>
