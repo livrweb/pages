@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Social Anxiety Simulator Mobile</title>
+<style>
+body { background-color: #111; color: #fff; margin: 0; padding: 0; overflow: hidden; touch-action: none; font-family: monospace; }
+canvas { display: block; width: 100vw; height: 100vh; }
+</style>
+</head>
+<body>
+<canvas id="g"></canvas>
+<script>
+const c = document.getElementById("g");
+const ctx = c.getContext("2d");
+
+function resize() {
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+}
+window.addEventListener("resize", resize);
+resize();
+
+let px = c.width / 2, py = c.height / 2, panic = 0, timer = 60, gameOver = false, won = false;
+const npcs = [];
+const phrases = ["Hi!", "Excuse me?", "Do you have the time?", "Nice weather!"];
+
+for (let i = 0; i < 8; i++) {
+    npcs.push({
+        x: Math.random() * (c.width - 50) + 25,
+        y: Math.random() * (c.height - 50) + 25,
+        vx: (Math.random() - 0.5) * 3,
+        vy: (Math.random() - 0.5) * 3,
+        phrase: phrases[Math.floor(Math.random() * phrases.length)]
+    });
+}
+
+let jx = 0, jy = 0, jActive = false, jOriginX = 0, jOriginY = 0;
+
+c.addEventListener("touchstart", e => {
+    jActive = true;
+    jOriginX = e.touches[0].clientX;
+    jOriginY = e.touches[0].clientY;
+    jx = 0;
+    jy = 0;
+});
+
+c.addEventListener("touchmove", e => {
+    if (!jActive) return;
+    let dx = e.touches[0].clientX - jOriginX;
+    let dy = e.touches[0].clientY - jOriginY;
+    let dist = Math.sqrt(dx * dx + dy * dy);
+    let maxDist = 50;
+    
+    if (dist > maxDist) {
+        dx = (dx / dist) * maxDist;
+        dy = (dy / dist) * maxDist;
+    }
+    jx = dx;
+    jy = dy;
+});
+
+c.addEventListener("touchend", () => {
+    jActive = false;
+    jx = 0;
+    jy = 0;
+});
+
+function update() {
+    if (gameOver) return;
+
+    if (jActive) {
+        px += (jx / 50) * 4;
+        py += (jy / 50) * 4;
+    }
+
+    px = Math.max(15, Math.min(c.width - 15, px));
+    py = Math.max(15, Math.min(c.height - 15, py));
+
+    let panicGain = 0;
+
+    npcs.forEach(n => {
+        n.x += n.vx;
+        n.y += n.vy;
+
+        if (n.x < 15 || n.x > c.width - 15) n.vx *= -1;
+        if (n.y < 15 || n.y > c.height - 15) n.vy *= -1;
+
+        const dx = px - n.x;
+        const dy = py - n.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 150) {
+            panicGain += (150 - dist) * 0.005;
+        }
+    });
+
+    if (panicGain > 0) {
+        panic += panicGain;
+    } else {
+        panic = Math.max(0, panic - 0.2);
+    }
+
+    if (panic >= 100) {
+        gameOver = true;
+        won = false;
+    }
+}
+
+setInterval(() => {
+    if (!gameOver && timer > 0) {
+        timer--;
+        if (timer <= 0) {
+            gameOver = true;
+            won = true;
+        }
+    }
+}, 1000);
+
+function draw() {
+    ctx.clearRect(0, 0, c.width, c.height);
+
+    ctx.fillStyle = "#3498db";
+    ctx.fillRect(px - 15, py - 15, 30, 30);
+
+    npcs.forEach(n => {
+        ctx.fillStyle = "#e74c3c";
+        ctx.fillRect(n.x - 15, n.y - 15, 30, 30);
+
+        const dx = px - n.x;
+        const dy = py - n.y;
+        if (Math.sqrt(dx * dx + dy * dy) < 150) {
+            ctx.fillStyle = "#fff";
+            ctx.font = "12px monospace";
+            ctx.textAlign = "center";
+            ctx.fillText(n.phrase, n.x, n.y - 25);
+        }
+    });
+
+    ctx.fillStyle = "#444";
+    ctx.fillRect(20, 20, 150, 20);
+    ctx.fillStyle = "red";
+    ctx.fillRect(20, 20, panic * 1.5, 20);
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(20, 20, 150, 20);
+    
+    ctx.fillStyle = "#fff";
+    ctx.font = "14px monospace";
+    ctx.textAlign = "left";
+    ctx.fillText("PANIC", 25, 34);
+
+    ctx.textAlign = "right";
+    ctx.fillText("TIME: " + timer, c.width - 20, 34);
+
+    if (jActive) {
+        ctx.beginPath();
+        ctx.arc(jOriginX, jOriginY, 50, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(jOriginX + jx, jOriginY + jy, 20, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+        ctx.fill();
+    }
+
+    if (gameOver) {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.fillStyle = won ? "#2ecc71" : "#e74c3c";
+        ctx.font = "20px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(won ? "SURVIVED." : "PANIC ATTACK.", c.width / 2, c.height / 2);
+    }
+}
+
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
+

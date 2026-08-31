@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Liver B — Photographer / Developer</title>
+<title>Photo Stream — Liver B</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -37,32 +37,24 @@
 </nav>
 <div class="nav-backdrop" id="nav-backdrop"></div>
 
-<div id="top" class="hero">
-  <div class="hero-photo" style="position:relative;">
-    <img id="dynamic-pfp" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Liver B">
-    <span class="deco-pin" id="deco-pin" title="">📌</span>
-    <span class="hidden-note" id="hidden-note">you found the pin.</span>
-  </div>
-  <div>
-    <h1>Liver B</h1>
-    <p class="tagline">Photographer <b>&middot;</b> Developer</p>
-    <p class="blurb">Building small, weird, mostly-working things on the internet — games, tools, and whatever else seemed fun at 1am. Photos below are live from my phone.</p>
-  </div>
-</div>
 <main>
 
-  <section id="about" class="reveal">
-    <div class="section-head"><h2>About</h2></div>
-    <div class="about-grid">
-      <div class="about-text">
-        <p>I shoot photos and build small web experiments in roughly equal measure — usually both on the same night. Most of what's here started as "what if" and got out of hand.</p>
-        <p>This site is one of those experiments too — it auto-pulls photos straight from my phone. Head to <a href="/photos.html">Photos</a> to see what I shot most recently, unedited.</p>
-      </div>
+  <section id="photos" class="reveal">
+    <div class="section-head">
+      <h2>Photo Stream</h2>
+      <span>live from the album</span>
+    </div>
+    <div class="gallery" id="gallery-container">
+      <div class="loading-text">Fetching latest photos...</div>
     </div>
   </section>
 
 </main>
-
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightbox-close" type="button" aria-label="Close">✕</button>
+  <img id="lightbox-img" src="" alt="">
+  <div class="lightbox-cap" id="lightbox-cap"></div>
+</div>
 <div class="toast" id="toast"></div>
 <div class="idle-whisper" id="idle-whisper"></div>
 <div class="disco-ball" id="disco-ball"></div>

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Wobbly Drive</title>
+<style>
+body {
+    margin: 0;
+    background: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+    color: #fff;
+    font-family: monospace;
+}
+canvas {
+    background: #222;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
+}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let gameState = 'start';
+let score = 0;
+let distance = 0;
+let health = 100;
+
+let car = {
+    x: 400,
+    y: 480,
+    width: 40,
+    height: 70,
+    speed: 4,
+    steerInput: 0,
+    actualAngle: 0
+};
+
+let roadOffset = 0;
+let obstacles = [];
+let keys = {};
+
+window.addEventListener('keydown', e => {
+    keys[e.code] = true;
+    if (gameState === 'start' && e.code === 'Space') {
+        resetGame();
+        gameState = 'playing';
+    } else if (gameState === 'gameover' && e.code === 'Space') {
+        resetGame();
+        gameState = 'playing';
+    }
+});
+
+window.addEventListener('keyup', e => {
+    keys[e.code] = false;
+});
+
+function resetGame() {
+    score = 0;
+    distance = 0;
+    health = 100;
+    car.x = 400;
+    car.y = 480;
+    car.speed = 4;
+    car.steerInput = 0;
+    car.actualAngle = 0;
+    obstacles = [];
+}
+
+function spawnObstacle() {
+    let laneX = 220 + Math.floor(Math.random() * 3) * 120;
+    obstacles.push({
+        x: laneX,
+        y: -100,
+        width: 50,
+        height: 50,
+        speed: 3
+    });
+}
+
+let spawnTimer = 0;
+
+function update() {
+    if (gameState !== 'playing') return;
+
+    distance += car.speed;
+    score = Math.floor(distance / 10);
+
+    spawnTimer++;
+    if (spawnTimer > 60) {
+        spawnObstacle();
+        spawnTimer = 0;
+    }
+
+    let targetSteer = 0;
+    if (keys['ArrowLeft'] || keys['KeyA']) targetSteer = -1;
+    if (keys['ArrowRight'] || keys['KeyD']) targetSteer = 1;
+
+    car.steerInput += (targetSteer - car.steerInput) * 0.1;
+
+    let wobble = Math.sin(Date.now() * 0.003) * 0.8 + Math.cos(Date.now() * 0.0017) * 0.5;
+    car.actualAngle = car.steerInput * 0.4 + wobble * 0.3;
+
+    car.x += car.actualAngle * 5;
+
+    if (car.x < 180) {
+        car.x = 180;
+        health -= 0.5;
+    }
+    if (car.x > 620 - car.width) {
+        car.x = 620 - car.width;
+        health -= 0.5;
+    }
+
+    roadOffset = (roadOffset + car.speed) % 40;
+
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+        let obs = obstacles[i];
+        obs.y += car.speed - obs.speed;
+
+        if (
+            car.x < obs.x + obs.width &&
+            car.x + car.width > obs.x &&
+            car.y < obs.y + obs.height &&
+            car.y + car.height > obs.y
+        ) {
+            health -= 25;
+            obstacles.splice(i, 1);
+            if (health <= 0) {
+                health = 0;
+                gameState = 'gameover';
+            }
+        } else if (obs.y > canvas.height + 100) {
+            obstacles.splice(i, 1);
+        }
+    }
+}
+
+function draw() {
+    ctx.fillStyle = '#1b1b1b';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#333';
+    ctx.fillRect(180, 0, 440, canvas.height);
+
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([20, 20]);
+    ctx.lineDashOffset = -roadOffset;
+    ctx.beginPath();
+    ctx.moveTo(326, 0);
+    ctx.lineTo(326, canvas.height);
+    ctx.moveTo(473, 0);
+    ctx.lineTo(473, canvas.height);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.strokeStyle = '#ffcc00';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(180, 0);
+    ctx.lineTo(180, canvas.height);
+    ctx.moveTo(620, 0);
+    ctx.lineTo(620, canvas.height);
+    ctx.stroke();
+
+    for (let obs of obstacles) {
+        ctx.fillStyle = '#ff4444';
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(obs.x + 10, obs.y + 15, obs.width - 20, 10);
+    }
+
+    ctx.save();
+    ctx.translate(car.x + car.width / 2, car.y + car.height / 2);
+    ctx.rotate(car.actualAngle * 0.5);
+    ctx.fillStyle = '#3498db';
+    ctx.fillRect(-car.width / 2, -car.height / 2, car.width, car.height);
+    ctx.fillStyle = '#2c3e50';
+    ctx.fillRect(-car.width / 2 + 5, -car.height / 2 + 10, car.width - 10, 15);
+    ctx.fillRect(-car.width / 2 + 5, -car.height / 2 + 40, car.width - 10, 10);
+    ctx.restore();
+
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px monospace';
+    ctx.fillText('Score: ' + score, 20, 30);
+    ctx.fillText('Control Stability: ' + Math.max(0, Math.floor(health)) + '%', 20, 60);
+
+    let blurVal = Math.abs(Math.sin(Date.now() * 0.002)) * 4;
+    canvas.style.filter = `blur(${blurVal}px)`;
+
+    if (gameState === 'start') {
+        canvas.style.filter = 'none';
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#fff';
+        ctx.font = '30px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('WOBBLY DRIVE', canvas.width / 2, canvas.height / 2 - 30);
+        ctx.font = '16px monospace';
+        ctx.fillText('Use A/D or Arrow Keys to steer', canvas.width / 2, canvas.height / 2 + 10);
+        ctx.fillText('Press SPACE to Start', canvas.width / 2, canvas.height / 2 + 50);
+        ctx.textAlign = 'left';
+    } else if (gameState === 'gameover') {
+        canvas.style.filter = 'none';
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ff4444';
+        ctx.font = '30px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('CRASHED', canvas.width / 2, canvas.height / 2 - 30);
+        ctx.fillStyle = '#fff';
+        ctx.font = '16px monospace';
+        ctx.fillText('Final Score: ' + score, canvas.width / 2, canvas.height / 2 + 10);
+        ctx.fillText('Press SPACE to Restart', canvas.width / 2, canvas.height / 2 + 50);
+        ctx.textAlign = 'left';
+    }
+}
+
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>

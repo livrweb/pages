@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tap the Bouncing Image</title>
+
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        background: #111;
+        color: white;
+        font-family: Arial, sans-serif;
+        touch-action: manipulation;
+    }
+
+    #score {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        font-size: 22px;
+        z-index: 10;
+    }
+
+    #gameArea {
+        width: 100vw;
+        height: 100vh;
+        position: relative;
+    }
+
+    #ball {
+        position: absolute;
+        width: 80px;
+        height: 80px;
+        user-select: none;
+        -webkit-user-drag: none;
+        transition: transform 0.1s;
+    }
+
+    #ball:active {
+        transform: scale(1.2);
+    }
+</style>
+</head>
+
+<body>
+
+<div id="score">Score: 0</div>
+
+<div id="gameArea">
+    <img id="ball" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ-XN1zsy9-k2VKuo_l5zFpX3dGzWMVdd5HLw&s">
+</div>
+
+<script>
+const ball = document.getElementById("ball");
+const scoreText = document.getElementById("score");
+
+let x = 100;
+let y = 100;
+let dx = 3;
+let dy = 3;
+let score = 0;
+
+// Movement loop
+function update() {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const size = 80;
+
+    x += dx;
+    y += dy;
+
+    if (x <= 0 || x + size >= width) dx *= -1;
+    if (y <= 0 || y + size >= height) dy *= -1;
+
+    ball.style.left = x + "px";
+    ball.style.top = y + "px";
+
+    requestAnimationFrame(update);
+}
+update();
+
+// Tap / click scoring
+function hitBall(e) {
+    e.preventDefault();
+
+    score += 10;
+    scoreText.textContent = "Score: " + score;
+
+    // little speed boost when hit
+    dx *= 1.05;
+    dy *= 1.05;
+}
+
+// Works on mobile + desktop
+ball.addEventListener("touchstart", hitBall);
+ball.addEventListener("click", hitBall);
+</script>
+
+</body>
+</html>

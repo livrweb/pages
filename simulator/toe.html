@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Toenail Clipping Simulator</title>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: #2b2b2b;
+        overflow: hidden;
+        touch-action: none;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        width: 100vw;
+    }
+    canvas {
+        display: block;
+        background-color: #a8d0e6;
+    }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    
+    let width, height, cx, cy, toeRadius, nailRadius;
+    let overgrownSegments = [];
+
+    function init() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+
+        cx = width / 2;
+        cy = height / 2 + (height * 0.1);
+        toeRadius = Math.min(width, height) * 0.35;
+        nailRadius = toeRadius * 0.6;
+
+        overgrownSegments = [];
+        const numSegments = 7;
+        const startAngle = Math.PI * 1.1;
+        const endAngle = Math.PI * 1.9;
+        const angleStep = (endAngle - startAngle) / (numSegments - 1);
+
+        for(let i = 0; i < numSegments; i++) {
+            let angle = startAngle + (i * angleStep);
+            overgrownSegments.push({
+                x: cx + Math.cos(angle) * (nailRadius * 0.9),
+                y: cy - (toeRadius * 0.2) + Math.sin(angle) * (nailRadius * 0.9),
+                r: nailRadius * 0.35,
+                active: true
+            });
+        }
+        draw();
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, width, height);
+
+        ctx.fillStyle = "#f5c5b5";
+        ctx.beginPath();
+        ctx.arc(cx, cy, toeRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#f7dcd1";
+        ctx.beginPath();
+        ctx.arc(cx, cy - (toeRadius * 0.2), nailRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#e5b4a3";
+        ctx.beginPath();
+        ctx.arc(cx, cy + (toeRadius * 0.3), toeRadius * 0.4, Math.PI, Math.PI * 2);
+        ctx.stroke();
+
+        let allClean = true;
+        ctx.fillStyle = "#fff4db";
+        overgrownSegments.forEach(seg => {
+            if(seg.active) {
+                allClean = false;
+                ctx.beginPath();
+                ctx.arc(seg.x, seg.y, seg.r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        });
+
+        if(allClean) {
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 40px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("Clean!", cx, cy - toeRadius - 40);
+        }
+    }
+
+    function handleInput(x, y) {
+        let clipped = false;
+        overgrownSegments.forEach(seg => {
+            if(seg.active) {
+                let dx = x - seg.x;
+                let dy = y - seg.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                if(distance < seg.r * 1.8) {
+                    seg.active = false;
+                    clipped = true;
+                }
+            }
+        });
+        
+        if(clipped) {
+            draw();
+        }
+    }
+
+    canvas.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        for(let i = 0; i < e.touches.length; i++) {
+            handleInput(e.touches[i].clientX, e.touches[i].clientY);
+        }
+    }, {passive: false});
+
+    canvas.addEventListener("touchmove", (e) => {
+        e.preventDefault();
+        for(let i = 0; i < e.touches.length; i++) {
+            handleInput(e.touches[i].clientX, e.touches[i].clientY);
+        }
+    }, {passive: false});
+
+    canvas.addEventListener("mousedown", (e) => {
+        handleInput(e.clientX, e.clientY);
+    });
+
+    window.addEventListener("resize", init);
+
+    init();
+</script>
+</body>
+</html>

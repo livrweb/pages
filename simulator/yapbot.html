@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yapbot 3000</title>
+  <style>
+    body {
+      background-color: #111;
+      color: #0f0;
+      font-family: 'Courier New', Courier, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      overflow: hidden;
+    }
+    h1 {
+      font-size: 4rem;
+      text-shadow: 0 0 15px #0f0;
+      margin-bottom: 0.2rem;
+      text-align: center;
+    }
+    p {
+      font-size: 1.2rem;
+      margin-bottom: 2rem;
+      color: #555;
+    }
+    .controls {
+      background: #222;
+      padding: 30px;
+      border-radius: 15px;
+      border: 2px solid #0f0;
+      box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+      text-align: center;
+      width: 80%;
+      max-width: 650px;
+    }
+    button {
+      background: #0f0;
+      color: #111;
+      border: none;
+      padding: 15px 25px;
+      margin: 5px;
+      font-size: 1.2rem;
+      font-family: inherit;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      border-radius: 5px;
+    }
+    button:hover:not(:disabled) {
+      background: #0c0;
+      box-shadow: 0 0 15px #0f0;
+    }
+    button.stop {
+      background: #f00;
+      color: #fff;
+    }
+    button.stop:hover:not(:disabled) {
+      background: #c00;
+      box-shadow: 0 0 15px #f00;
+    }
+    button:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    #yap-display {
+      margin-top: 30px;
+      font-size: 1.8rem;
+      min-height: 4.5rem;
+      color: #fff;
+      font-weight: bold;
+    }
+    .glitch {
+      animation: shake 0.2s infinite;
+    }
+    @keyframes shake {
+      0% { transform: translate(1px, 1px) rotate(0deg); }
+      25% { transform: translate(-1px, -2px) rotate(-1deg); }
+      50% { transform: translate(-3px, 0px) rotate(1deg); }
+      75% { transform: translate(3px, 2px) rotate(0deg); }
+      100% { transform: translate(1px, -1px) rotate(-1deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>YAPBOT 3000</h1>
+  <p id="status">System Status: Awaiting Audio Clearance</p>
+
+  <div class="controls">
+    <button id="startBtn">Initiate Yapping</button>
+    <button id="stopBtn" class="stop" disabled>Halt Protocol</button>
+    <div id="yap-display">...</div>
+  </div>
+
+  <script>
+    const adjectives = ["glowing", "confused", "tactical", "slimy", "loud", "quantum", "suspicious", "invisible", "spicy", "radioactive", "furious", "melted", "frozen", "cybernetic", "cursed"];
+    const nouns = ["toaster", "goblin", "algorithm", "banana", "void", "saxophone", "cabbage", "wizard", "penguin", "tax return", "fire hydrant", "microchip", "burrito", "satellite", "pigeon"];
+    const verbs = ["devours", "teleports", "yells at", "marinates", "investigates", "ignores", "kicks", "evaporates", "befriends", "microwaves", "calculates", "dismantles", "juggles", "hypnotizes", "bites"];
+    const adverbs = ["aggressively", "silently", "awkwardly", "rapidly", "suspiciously", "loudly", "reluctantly", "joyfully", "accidentally", "menacingly"];
+
+    let isYapping = false;
+    let yapTimeout;
+    let sfxTimeout;
+    
+    const synth = window.speechSynthesis;
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const display = document.getElementById('yap-display');
+    const statusText = document.getElementById('status');
+
+    // Audio Setup
+    const bgMusic = new Audio('song.mp3');
+    bgMusic.loop = true;
+    bgMusic.volume = 0.4; // Slightly lowered so it doesn't drown out the TTS
+
+    let voices = [];
+    
+    function populateVoiceList() {
+      voices = synth.getVoices();
+    }
+    
+    populateVoiceList();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.onvoiceschanged = populateVoiceList;
+    }
+
+    function generateSentence() {
+      const adj1 = adjectives[Math.floor(Math.random() * adjectives.length)];
+      const noun1 = nouns[Math.floor(Math.random() * nouns.length)];
+      const verb = verbs[Math.floor(Math.random() * verbs.length)];
+      const adj2 = adjectives[Math.floor(Math.random() * adjectives.length)];
+      const noun2 = nouns[Math.floor(Math.random() * nouns.length)];
+      const adv = adverbs[Math.floor(Math.random() * adverbs.length)];
+
+      const templates = [
+        `The ${adj1} ${noun1} ${verb} the ${noun2} ${adv}.`,
+        `Why does the ${noun1} ${verb} a ${adj2} ${noun2}?`,
+        `${adv.charAt(0).toUpperCase() + adv.slice(1)}, the ${adj1} ${noun1} ${verb}.`,
+        `I watched a ${adj1} ${noun1} ${verb} the ${adj2} ${noun2}.`,
+        `Do not let the ${noun1} ${verb} the ${noun2}!`,
+        `A ${adj1} ${noun1} is ${adv} plotting against the ${adj2} ${noun2}.`
+      ];
+      
+      return templates[Math.floor(Math.random() * templates.length)];
+    }
+
+    function scheduleRandomSfx() {
+      if (!isYapping) return;
+      
+      // Random delay between 1 and 5 seconds for the next SFX
+      const randomDelay = 1000 + Math.random() * 4000;
+      
+      sfxTimeout = setTimeout(() => {
+        if (isYapping) {
+          const sfx = new Audio('sfx.mp3');
+          sfx.volume = 0.7;
+          sfx.play().catch(e => console.warn("SFX playback failed", e));
+          scheduleRandomSfx(); // loop back to schedule the next one
+        }
+      }, randomDelay);
+    }
+
+    function fireNextYap() {
+      if (!isYapping) return;
+
+      const sentence = generateSentence();
+      
+      display.innerText = sentence;
+      display.classList.add('glitch');
+      setTimeout(() => display.classList.remove('glitch'), 200);
+
+      const utterance = new SpeechSynthesisUtterance(sentence);
+
+      if (voices.length > 0) {
+        utterance.voice = voices[Math.floor(Math.random() * voices.length)];
+      }
+
+      utterance.pitch = Math.random() * 2; 
+      utterance.rate = 0.7 + (Math.random() * 1.5); 
+
+      utterance.onend = () => {
+        yapTimeout = setTimeout(fireNextYap, Math.random() * 500);
+      };
+
+      utterance.onerror = () => {
+        yapTimeout = setTimeout(fireNextYap, 500);
+      };
+
+      synth.speak(utterance);
+    }
+
+    startBtn.addEventListener('click', () => {
+      isYapping = true;
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      statusText.innerText = "System Status: ACTIVE YAPPING";
+      statusText.style.color = "#0f0";
+
+      // Start Background Music
+      bgMusic.play().catch(e => console.warn("BG Music playback failed. Did you click the button?", e));
+
+      synth.cancel();
+      clearTimeout(yapTimeout);
+      clearTimeout(sfxTimeout);
+      
+      fireNextYap();
+      scheduleRandomSfx();
+    });
+
+    stopBtn.addEventListener('click', () => {
+      isYapping = false;
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      statusText.innerText = "System Status: HALTED";
+      statusText.style.color = "#f00";
+      display.innerText = "SILENCE.";
+      display.classList.remove('glitch');
+
+      // Stop Background Music & Timers
+      bgMusic.pause();
+      bgMusic.currentTime = 0; // Reset music to the beginning
+      
+      clearTimeout(yapTimeout);
+      clearTimeout(sfxTimeout);
+      synth.cancel(); 
+
+      const silenceUtterance = new SpeechSynthesisUtterance("Silence.");
+      silenceUtterance.pitch = 0.3;
+      silenceUtterance.rate = 0.6;
+      synth.speak(silenceUtterance);
+    });
+  </script>
+</body>
+</html>
+

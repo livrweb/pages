@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Popsicle Maker Simulator</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background: #1a1a1a;
+    color: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+    touch-action: none;
+  }
+  #gameContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 400px;
+  }
+  canvas {
+    background: #2a2a2a;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    width: 100%;
+    height: auto;
+    aspect-ratio: 9 / 16;
+  }
+  .ui {
+    margin-top: 16px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    padding: 0 16px;
+    box-sizing: border-box;
+  }
+  button {
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    background: #ff3366;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(255, 51, 102, 0.4);
+    transition: transform 0.1s ease;
+  }
+  button:active {
+    transform: scale(0.95);
+    background: #e02e5b;
+  }
+  .info-text {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div id="gameContainer">
+  <div class="info-text" id="infoText">Popsicle Maker</div>
+  <canvas id="gameCanvas" width="360" height="640"></canvas>
+  <div class="ui" id="uiContainer"></div>
+</div>
+
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const uiContainer = document.getElementById('uiContainer');
+  const infoText = document.getElementById('infoText');
+
+  let state = 'flavor';
+  let selectedFlavor = { name: 'Strawberry', color: '#ff3366' };
+  let freezeProgress = 0;
+  let bites = 0;
+
+  // Topping states
+  let chocolateCount = 0;
+  let sprinkles = [];
+  let stars = [];
+
+  const flavors = [
+    { name: 'Strawberry', color: '#ff3366' },
+    { name: 'Blueberry', color: '#3366ff' },
+    { name: 'Lemon', color: '#ffcc00' },
+    { name: 'Lime', color: '#33cc33' }
+  ];
+
+  function initUI() {
+    uiContainer.innerHTML = '';
+    if (state === 'flavor') {
+      infoText.textContent = 'Choose a Flavor';
+      flavors.forEach(f => {
+        let btn = document.createElement('button');
+        btn.style.background = f.color;
+        btn.textContent = f.name;
+        btn.onclick = () => {
+          selectedFlavor = f;
+          state = 'topping';
+          initUI();
+        };
+        uiContainer.appendChild(btn);
+      });
+    } else if (state === 'topping') {
+      infoText.textContent = 'Add Toppings (Tap Infinitely!)';
+
+      // Chocolate Button
+      let chocBtn = document.createElement('button');
+      chocBtn.style.background = '#5c4033';
+      chocBtn.textContent = chocolateCount === 0 ? 'Chocolate Dip' : `Chocolate (${chocolateCount})`;
+      chocBtn.onclick = () => {
+        chocolateCount++;
+        initUI();
+      };
+      uiContainer.appendChild(chocBtn);
+
+      // Sprinkles Button
+      let sprinkleBtn = document.createElement('button');
+       sprinkleBtn.style.background = '#ff9900';
+       sprinkleBtn.textContent = 'Add Sprinkles';
+       sprinkleBtn.onclick = () => {
+        for (let i = 0; i < 5; i++) {
+          sprinkles.push({
+            x: (Math.random() - 0.5) * 90,
+            y: Math.random() * 240 + 15,
+            color: ['#ffff33', '#00ffff', '#ff66ff', '#ffffff', '#ff3333'][Math.floor(Math.random() * 5)]
+          });
+        }
+      };
+      uiContainer.appendChild(sprinkleBtn);
+
+      // Stars Button
+      let starBtn = document.createElement('button');
+      starBtn.style.background = '#9c27b0';
+      starBtn.textContent = 'Add Stars';
+      starBtn.onclick = () => {
+        for (let i = 0; i < 2; i++) {
+          stars.push({
+            x: (Math.random() - 0.5) * 80,
+            y: Math.random() * 240 + 20
+          });
+        }
+      };
+      uiContainer.appendChild(starBtn);
+
+      // Next / Freeze Button
+      let nextBtn = document.createElement('button');
+      nextBtn.style.background = '#4CAF50';
+      nextBtn.textContent = 'Freeze It!';
+      nextBtn.onclick = () => {
+        state = 'freeze';
+        freezeProgress = 0;
+        initUI();
+      };
+      uiContainer.appendChild(nextBtn);
+
+    } else if (state === 'freeze') {
+      infoText.textContent = 'Freezing...';
+    } else if (state === 'eat') {
+      infoText.textContent = 'Tap to Eat!';
+      let btn = document.createElement('button');
+      btn.style.background = '#ff3366';
+      btn.textContent = 'Make Another';
+      btn.onclick = () => {
+        state = 'flavor';
+        bites = 0;
+        chocolateCount = 0;
+        sprinkles = [];
+        stars = [];
+        initUI();
+      };
+      uiContainer.appendChild(btn);
+    }
+  }
+
+  function update() {
+    if (state === 'freeze') {
+      freezeProgress += 1.2;
+      if (freezeProgress >= 100) {
+        freezeProgress = 100;
+        state = 'eat';
+        initUI();
+      }
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#222222';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (state === 'flavor') {
+      drawMoldOnly();
+    } else if (state === 'topping' || state === 'freeze') {
+      drawPopsicleBody(0);
+    } else if (state === 'eat') {
+      let heightReduction = bites * 25;
+      drawPopsicleBody(heightReduction);
+    }
+  }
+
+  function drawMoldOnly() {
+    ctx.fillStyle = '#c8ad7f';
+    ctx.fillRect(canvas.width / 2 - 12, 410, 24, 90);
+
+    ctx.strokeStyle = '#555555';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.roundRect(canvas.width / 2 - 60, 160, 120, 270, [60, 60, 15, 15]);
+    ctx.stroke();
+  }
+
+  function drawPopsicleBody(offset) {
+    let currentHeight = 270 - offset;
+    if (currentHeight < 0) currentHeight = 0;
+
+    // Stick
+    ctx.fillStyle = '#c8ad7f';
+    ctx.fillRect(canvas.width / 2 - 12, 410, 24, Math.max(0, 90 - offset));
+
+    if (currentHeight > 0) {
+      // Base Popsicle Color
+      ctx.fillStyle = selectedFlavor.color;
+      ctx.beginPath();
+      ctx.roundRect(canvas.width / 2 - 60, 160 + offset, 120, currentHeight, [offset === 0 ? 60 : 15, offset === 0 ? 60 : 15, 15, 15]);
+      ctx.fill();
+
+      // Freezing effect overlay
+      if (state === 'freeze') {
+        ctx.fillStyle = `rgba(0, 200, 255, ${1 - freezeProgress / 100})`;
+        ctx.fillRect(canvas.width / 2 - 60, 160, 120, 270 * (1 - freezeProgress / 100));
+      }
+
+      // Chocolate Layers (Gets progressively darker and drips lower with each layer)
+      if (chocolateCount > 0) {
+        let r = Math.max(10, 92 - (chocolateCount * 14));
+        let g = Math.max(5, 64 - (chocolateCount * 10));
+        let b = Math.max(5, 51 - (chocolateCount * 8));
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+
+        let dripHeight = Math.min(270, 55 + (chocolateCount * 30));
+        let renderChocHeight = Math.min(dripHeight - offset, currentHeight);
+
+        if (renderChocHeight > 0) {
+          ctx.beginPath();
+          ctx.roundRect(canvas.width / 2 - 60, 160 + offset, 120, renderChocHeight, [offset === 0 ? 60 : 15, offset === 0 ? 60 : 15, 0, 0]);
+          ctx.fill();
+        }
+      }
+
+      // Random Sprinkles
+      sprinkles.forEach(s => {
+        if (s.y >= offset && s.y <= 270) {
+          ctx.fillStyle = s.color;
+          ctx.fillRect(canvas.width / 2 + s.x, 160 + s.y, 10, 4);
+        }
+      });
+
+      // Random Stars
+      stars.forEach(st => {
+        if (st.y >= offset && st.y <= 270) {
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '18px sans-serif';
+          ctx.fillText('★', canvas.width / 2 + st.x, 160 + st.y);
+        }
+      });
+
+      // Outer Border Outline
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.roundRect(canvas.width / 2 - 60, 160 + offset, 120, currentHeight, [offset === 0 ? 60 : 15, offset === 0 ? 60 : 15, 15, 15]);
+      ctx.stroke();
+    }
+  }
+
+  canvas.addEventListener('pointerdown', () => {
+    if (state === 'eat') {
+      bites++;
+      if (bites > 11) {
+        bites = 11;
+      }
+    }
+  });
+
+  function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  initUI();
+  loop();
+</script>
+</body>
+</html>
+

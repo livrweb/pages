@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Viewport settings strictly tuned for mobile web apps -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ragebait Simulator</title>
+    <style>
+        /* CSS Reset and Mobile Defaults */
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            /* Prevent text highlighting when tapping fast */
+            user-select: none; 
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #121212; 
+            color: #f0f0f0; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            overflow: hidden; 
+        }
+
+        /* Sticky Header */
+        header { 
+            background: #d32f2f; 
+            padding: 20px 15px; 
+            text-align: center; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
+            z-index: 10; 
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stats { 
+            display: flex; 
+            justify-content: space-between; 
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold; 
+            font-size: 0.9rem;
+        }
+
+        .stat-box span {
+            display: block;
+            font-size: 1.2rem;
+            color: #ffeb3b;
+        }
+
+        /* Main Game Area */
+        main { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 20px 15px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px; 
+        }
+
+        .action-area { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 25vh; 
+            background: #1e1e1e; 
+            border-radius: 12px; 
+            padding: 20px; 
+            text-align: center; 
+            border: 2px solid #333; 
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .bait-text { 
+            font-size: 1.1rem; 
+            font-style: italic; 
+            color: #ffab00; 
+            margin-bottom: 20px; 
+            min-height: 70px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            transition: transform 0.1s ease-out;
+        }
+
+        /* Primary Button */
+        button { 
+            background: #d32f2f; 
+            color: white; 
+            border: none; 
+            padding: 18px 30px; 
+            font-size: 1.2rem; 
+            border-radius: 50px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: transform 0.1s, filter 0.2s; 
+            width: 100%; 
+            max-width: 320px; 
+            /* Fixes tap delay on mobile */
+            touch-action: manipulation; 
+            box-shadow: 0 4px 0 #9a0007;
+        }
+
+        button:active { 
+            transform: translateY(4px); 
+            box-shadow: 0 0 0 #9a0007;
+            filter: brightness(0.9); 
+        }
+
+        button:disabled { 
+            background: #444; 
+            color: #777; 
+            box-shadow: 0 4px 0 #222;
+            cursor: not-allowed; 
+            transform: none; 
+        }
+
+        /* Shop Area */
+        .shop { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            padding-bottom: 40px; 
+        }
+
+        .shop h2 { 
+            font-size: 1.3rem; 
+            margin-bottom: 5px; 
+            color: #ef5350; 
+            border-bottom: 2px solid #333; 
+            padding-bottom: 8px; 
+        }
+
+        .upgrade { 
+            background: #252525; 
+            border: 1px solid #444; 
+            border-radius: 12px; 
+            padding: 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            gap: 10px;
+        }
+
+        .upgrade-info { 
+            flex: 1; 
+        }
+
+        .upgrade-title { 
+            font-weight: bold; 
+            font-size: 1.1rem; 
+        }
+
+        .upgrade-desc { 
+            font-size: 0.85rem; 
+            color: #aaa; 
+            margin-top: 6px; 
+        }
+
+        .upgrade-btn { 
+            padding: 12px 15px; 
+            font-size: 1rem; 
+            width: auto; 
+            background: #1976d2; 
+            box-shadow: 0 4px 0 #004ba0;
+            border-radius: 8px;
+        }
+        
+        .upgrade-btn:active {
+            box-shadow: 0 0 0 #004ba0;
+        }
+
+        .upgrade-btn:disabled {
+            background: #444; 
+            box-shadow: 0 4px 0 #222;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Ragebait Simulator</h1>
+        <div class="stats">
+            <div class="stat-box">
+                Rage Points
+                <span id="rage-count">0</span>
+            </div>
+            <div class="stat-box">
+                Rage / Sec
+                <span id="rps-count">0</span>
+            </div>
+            <div class="stat-box">
+                Rage / Tap
+                <span id="rpc-count">1</span>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="action-area">
+            <div class="bait-text" id="bait-text">"Press the button to post your first terrible take."</div>
+            <button id="post-btn">POST RAGEBAIT</button>
+        </section>
+
+        <section class="shop">
+            <h2>Upgrades</h2>
+            <div id="shop-items">
+                <!-- Upgrades injected via JS -->
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Game State
+        let rage = 0;
+        let ragePerClick = 1;
+        let ragePerSecond = 0;
+
+        // Content
+        const baitTexts = [
+            "A hot dog is literally just a sandwich.",
+            "Water isn't wet. You're all wrong.",
+            "I put the milk in the bowl BEFORE the cereal.",
+            "Pineapple is objectively the BEST pizza topping.",
+            "Using turn signals is a sign of weakness.",
+            "The Earth is clearly flat. Look at the horizon.",
+            "Video games cause 100% of bad behavior in youth.",
+            "I leave my shopping cart in the middle of the parking lot.",
+            "Toilet paper goes under, not over. Deal with it.",
+            "People who read books are just showing off.",
+            "Mayonnaise is the best coffee creamer.",
+            "Star Wars is basically just a ripoff of Star Trek.",
+            "Batman would easily lose a fight to Kevin from Home Alone."
+        ];
+
+        // Shop Data
+        const upgrades = {
+            troll: { title: "Forum Troll", desc: "+1 Rage/sec", cost: 25, rps: 1, click: 0, count: 0 },
+            blueCheck: { title: "Paid Blue Check", desc: "+2 Rage/tap", cost: 50, rps: 0, click: 2, count: 0 },
+            botFarm: { title: "Bot Farm", desc: "+5 Rage/sec", cost: 200, rps: 5, click: 0, count: 0 },
+            aiGen: { title: "AI Take Generator", desc: "+10 Rage/tap", cost: 500, rps: 0, click: 10, count: 0 },
+            podcast: { title: "Alpha Podcast", desc: "+50 Rage/sec", cost: 2000, rps: 50, click: 0, count: 0 }
+        };
+
+        // DOM Elements
+        const rageDisplay = document.getElementById('rage-count');
+        const rpsDisplay = document.getElementById('rps-count');
+        const rpcDisplay = document.getElementById('rpc-count');
+        const baitDisplay = document.getElementById('bait-text');
+        const postBtn = document.getElementById('post-btn');
+        const shopContainer = document.getElementById('shop-items');
+
+        // Core Functions
+        function formatNumber(num) {
+            return Math.floor(num).toLocaleString();
+        }
+
+        function updateUI() {
+            rageDisplay.textContent = formatNumber(rage);
+            rpsDisplay.textContent = formatNumber(ragePerSecond);
+            rpcDisplay.textContent = formatNumber(ragePerClick);
+
+            // Update shop buttons status based on current rage
+            for (const key in upgrades) {
+                const btn = document.getElementById(`btn-${key}`);
+                if (btn) {
+                    btn.disabled = rage < upgrades[key].cost;
+                    btn.textContent = `Buy (${formatNumber(upgrades[key].cost)})`;
+                }
+                const countDisplay = document.getElementById(`count-${key}`);
+                if (countDisplay) {
+                    countDisplay.textContent = upgrades[key].count;
+                }
+            }
+        }
+
+        // Tap Action
+        postBtn.addEventListener('click', () => {
+            rage += ragePerClick;
+            
+            // Generate random text
+            const randomBait = baitTexts[Math.floor(Math.random() * baitTexts.length)];
+            baitDisplay.textContent = `"${randomBait}"`;
+            
+            // Small pop animation for visual feedback on mobile
+            baitDisplay.style.transform = 'scale(1.05)';
+            setTimeout(() => baitDisplay.style.transform = 'scale(1)', 100);
+            
+            updateUI();
+        });
+
+        // Buy Upgrade Action
+        window.buyUpgrade = function(key) {
+            const upg = upgrades[key];
+            if (rage >= upg.cost) {
+                rage -= upg.cost;
+                upg.count++;
+                
+                // Increase cost by 25% for next purchase
+                upg.cost *= 1.25; 
+                
+                // Apply bonuses
+                if (upg.rps > 0) ragePerSecond += upg.rps;
+                if (upg.click > 0) ragePerClick += upg.click;
+                
+                updateUI();
+            }
+        };
+
+        // Initialize Shop HTML
+        function initShop() {
+            shopContainer.innerHTML = ''; // Clear container
+            for (const key in upgrades) {
+                const upg = upgrades[key];
+                const div = document.createElement('div');
+                div.className = 'upgrade';
+                div.innerHTML = `
+                    <div class="upgrade-info">
+                        <div class="upgrade-title">${upg.title}</div>
+                        <div class="upgrade-desc">${upg.desc} <br> Owned: <span id="count-${key}" style="color: #fff; font-weight: bold;">0</span></div>
+                    </div>
+                    <button class="upgrade-btn" id="btn-${key}" onclick="buyUpgrade('${key}')">
+                        Buy (${formatNumber(upg.cost)})
+                    </button>
+                `;
+                shopContainer.appendChild(div);
+            }
+        }
+
+        // Game Loops
+        // Calculate incremental progress 10 times a second for smoother visually updating UI
+        setInterval(() => {
+            if (ragePerSecond > 0) {
+                rage += ragePerSecond / 10; 
+                updateUI();
+            }
+        }, 100);
+
+        // Init
+        initShop();
+        updateUI();
+    </script>
+</body>
+</html>

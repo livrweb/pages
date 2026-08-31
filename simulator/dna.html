@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jump over potato sack Simulator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #87CEEB; /* Sky blue */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none; /* Prevents mobile scrolling/zooming when tapping */
+        }
+        canvas {
+            display: block;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Lets clicks pass through to canvas */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        #score-board {
+            position: absolute;
+            top: 10%;
+            font-size: 36px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+        #message-box {
+            font-size: 28px;
+            font-weight: bold;
+            color: white;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 20px 30px;
+            border-radius: 15px;
+            text-align: center;
+            border: 3px solid #fff;
+            line-height: 1.5;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="ui-layer">
+        <div id="score-board">Score: 0</div>
+        <div id="message-box">
+            🥔 Potato Sack Simulator 🏃<br>
+            <span style="font-size: 18px; font-weight: normal;">Tap screen to jump!</span>
+        </div>
+    </div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreBoard = document.getElementById('score-board');
+    const messageBox = document.getElementById('message-box');
+
+    // Game Variables
+    let gameWidth, gameHeight, groundY;
+    let animationId;
+    let isGameOver = true;
+    let score = 0;
+    let gameSpeed = 5;
+    let frameCount = 0;
+
+    // Entities
+    let player;
+    let obstacles = [];
+
+    // Resize canvas to fit mobile screen perfectly
+    function resizeCanvas() {
+        gameWidth = window.innerWidth;
+        gameHeight = window.innerHeight;
+        canvas.width = gameWidth;
+        canvas.height = gameHeight;
+        groundY = gameHeight - (gameHeight * 0.2); // Ground is bottom 20%
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Player Object
+    class Player {
+        constructor() {
+            this.size = Math.min(gameWidth, gameHeight) * 0.12; // Scale player to screen
+            this.x = gameWidth * 0.1;
+            this.y = groundY - this.size;
+            this.vy = 0;
+            this.gravity = this.size * 0.035;
+            this.jumpStrength = -(this.size * 0.45);
+            this.grounded = true;
+        }
+
+        jump() {
+            if (this.grounded) {
+                this.vy = this.jumpStrength;
+                this.grounded = false;
+            }
+        }
+
+        update() {
+            this.y += this.vy;
+            
+            // Gravity
+            if (this.y + this.size < groundY) {
+                this.vy += this.gravity;
+                this.grounded = false;
+            } else {
+                this.vy = 0;
+                this.y = groundY - this.size;
+                this.grounded = true;
+            }
+        }
+
+        draw() {
+            ctx.font = `${this.size}px Arial`;
+            ctx.textAlign = "left";
+            ctx.textBaseline = "top";
+            ctx.fillText("🏃", this.x, this.y);
+        }
+    }
+
+    // Potato Sack Object
+    class PotatoSack {
+        constructor() {
+            this.size = Math.min(gameWidth, gameHeight) * 0.10; // Slightly smaller than player
+            this.x = gameWidth;
+            this.y = groundY - this.size;
+            this.counted = false;
+        }
+
+        update() {
+            this.x -= gameSpeed;
+        }
+
+        draw() {
+            ctx.font = `${this.size}px Arial`;
+            ctx.textAlign = "left";
+            ctx.textBaseline = "top";
+            ctx.fillText("🥔", this.x, this.y);
+        }
+    }
+
+    function initGame() {
+        player = new Player();
+        obstacles = [];
+        score = 0;
+        gameSpeed = gameWidth * 0.012; // Base speed based on screen width
+        frameCount = 0;
+        isGameOver = false;
+        scoreBoard.innerText = `Score: ${score}`;
+        messageBox.classList.add('hidden');
+        animate();
+    }
+
+    function spawnObstacle() {
+        // Randomize spawn intervals slightly
+        if (frameCount % Math.floor(Math.random() * 40 + 70) === 0) {
+            obstacles.push(new PotatoSack());
+        }
+    }
+
+    function drawEnvironment() {
+        // Draw Ground
+        ctx.fillStyle = '#654321'; // Dirt color
+        ctx.fillRect(0, groundY, gameWidth, gameHeight - groundY);
+        
+        // Draw Grass top layer
+        ctx.fillStyle = '#7CFC00'; // Grass color
+        ctx.fillRect(0, groundY, gameWidth, 15);
+    }
+
+    function checkCollision(p, o) {
+        // Hitbox adjustments since emojis have transparent padding
+        const hitboxShrink = p.size * 0.2; 
+        
+        return (
+            p.x + hitboxShrink < o.x + o.size - hitboxShrink &&
+            p.x + p.size - hitboxShrink > o.x + hitboxShrink &&
+            p.y + hitboxShrink < o.y + o.size - hitboxShrink &&
+            p.y + p.size - hitboxShrink > o.y + hitboxShrink
+        );
+    }
+
+    function gameOver() {
+        isGameOver = true;
+        cancelAnimationFrame(animationId);
+        messageBox.innerHTML = `Oof! You hit a sack!<br>Score: ${score}<br><span style="font-size: 18px; font-weight: normal;">Tap to restart</span>`;
+        messageBox.classList.remove('hidden');
+    }
+
+    function animate() {
+        if (isGameOver) return;
+
+        animationId = requestAnimationFrame(animate);
+        ctx.clearRect(0, 0, gameWidth, gameHeight);
+
+        drawEnvironment();
+
+        player.update();
+        player.draw();
+
+        spawnObstacle();
+
+        // Update and draw obstacles
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+            let obs = obstacles[i];
+            obs.update();
+            obs.draw();
+
+            // Collision detection
+            if (checkCollision(player, obs)) {
+                gameOver();
+            }
+
+            // Score updating
+            if (!obs.counted && obs.x + obs.size < player.x) {
+                score++;
+                scoreBoard.innerText = `Score: ${score}`;
+                obs.counted = true;
+                gameSpeed += 0.2; // Slowly increase difficulty
+            }
+
+            // Remove off-screen obstacles
+            if (obs.x + obs.size < 0) {
+                obstacles.splice(i, 1);
+            }
+        }
+
+        frameCount++;
+    }
+
+    // Controls Handling (Works for Touch and Mouse)
+    function handleInput(e) {
+        e.preventDefault(); // Stop double-tap zooming on mobile
+        if (isGameOver) {
+            initGame();
+        } else {
+            player.jump();
+        }
+    }
+
+    window.addEventListener('touchstart', handleInput, { passive: false });
+    window.addEventListener('mousedown', handleInput);
+    
+    // Allow spacebar for desktop testing
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+            handleInput(e);
+        }
+    });
+
+</script>
+</body>
+</html>
+

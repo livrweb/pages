@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fuck Shit Ass Simulator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+        }
+
+        header {
+            padding: 15px;
+            text-align: center;
+            background: #1e1e1e;
+            border-bottom: 2px solid #333;
+        }
+
+        header h1 {
+            font-size: 1.2rem;
+            color: #ff4757;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .score-board {
+            padding: 20px;
+            text-align: center;
+            background: #181818;
+        }
+
+        .score-board h2 {
+            font-size: 2.5rem;
+            color: #2ed573;
+            margin-bottom: 5px;
+        }
+
+        .score-board p {
+            font-size: 0.9rem;
+            color: #a4b0be;
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        #click-btn {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff4757, #ff6b81);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            box-shadow: 0 10px 25px rgba(255, 71, 87, 0.4);
+            cursor: pointer;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            outline: none;
+        }
+
+        #click-btn:active {
+            transform: scale(0.92);
+            box-shadow: 0 5px 15px rgba(255, 71, 87, 0.4);
+        }
+
+        .upgrades-panel {
+            background: #1e1e1e;
+            border-top: 2px solid #333;
+            padding: 15px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .upgrades-panel h3 {
+            font-size: 1rem;
+            margin-bottom: 10px;
+            color: #ffa502;
+        }
+
+        .upgrade-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #2f3542;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .upgrade-info h4 {
+            font-size: 0.9rem;
+            color: #f1f2f6;
+        }
+
+        .upgrade-info p {
+            font-size: 0.75rem;
+            color: #a4b0be;
+        }
+
+        .upgrade-btn {
+            background: #2ed573;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .upgrade-btn:disabled {
+            background: #747d8c;
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .floating-text {
+            position: absolute;
+            font-weight: bold;
+            color: #2ed573;
+            pointer-events: none;
+            animation: floatUp 0.8s ease-out forwards;
+            font-size: 1.2rem;
+        }
+
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-60px);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Fuck Shit Ass Simulator</h1>
+    </header>
+
+    <div class="score-board">
+        <h2 id="score">0</h2>
+        <p>Chaos Points | <span id="cps">0</span> per sec</p>
+    </div>
+
+    <div class="main-container" id="tap-container">
+        <button id="click-btn">TAP!</button>
+    </div>
+
+    <div class="upgrades-panel">
+        <h3>Upgrades</h3>
+        <div id="upgrades-list">
+            <!-- Upgrades dynamically inserted -->
+        </div>
+    </div>
+
+    <script>
+        let game = {
+            score: 0,
+            cps: 0,
+            clickPower: 1,
+            upgrades: [
+                { id: 'fuck', name: 'More Fucks', desc: '+1 Chaos/click', cost: 15, power: 1, type: 'click', count: 0 },
+                { id: 'shit', name: 'Pile of Shit', desc: '+2 Chaos/sec', cost: 50, power: 2, type: 'passive', count: 0 },
+                { id: 'ass', name: 'Heavy Ass', desc: '+10 Chaos/sec', cost: 250, power: 10, type: 'passive', count: 0 },
+                { id: 'chaos', name: 'Total Meltdown', desc: '+50 Chaos/sec', cost: 1200, power: 50, type: 'passive', count: 0 }
+            ]
+        };
+
+        const scoreEl = document.getElementById('score');
+        const cpsEl = document.getElementById('cps');
+        const clickBtn = document.getElementById('click-btn');
+        const upgradesListEl = document.getElementById('upgrades-list');
+        const tapContainer = document.getElementById('tap-container');
+
+        function formatNum(num) {
+            return Math.floor(num).toLocaleString();
+        }
+
+        function renderUpgrades() {
+            upgradesListEl.innerHTML = '';
+            game.upgrades.forEach((upg, index) => {
+                const item = document.createElement('div');
+                item.className = 'upgrade-item';
+                item.innerHTML = `
+                    <div class="upgrade-info">
+                        <h4>${upg.name} (${upg.count})</h4>
+                        <p>${upg.desc} — Cost: ${formatNum(upg.cost)}</p>
+                    </div>
+                    <button class="upgrade-btn" onclick="buyUpgrade(${index})" ${game.score < upg.cost ? 'disabled' : ''}>Buy</button>
+                `;
+                upgradesListEl.appendChild(item);
+            });
+        }
+
+        function updateUI() {
+            scoreEl.innerText = formatNum(game.score);
+            cpsEl.innerText = formatNum(game.cps);
+            
+            // Update button states efficiently without full re-render every frame unless needed
+            const buttons = upgradesListEl.getElementsByClassName('upgrade-btn');
+            game.upgrades.forEach((upg, index) => {
+                if (buttons[index]) {
+                    buttons[index].disabled = game.score < upg.cost;
+                }
+            });
+        }
+
+        function spawnFloatingText(x, y, text) {
+            const el = document.createElement('div');
+            el.className = 'floating-text';
+            el.innerText = text;
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 800);
+        }
+
+        clickBtn.addEventListener('pointerdown', (e) => {
+            game.score += game.clickPower;
+            
+            const rect = clickBtn.getBoundingClientRect();
+            const x = e.clientX || (rect.left + rect.width / 2);
+            const y = e.clientY || (rect.top + rect.height / 2);
+            spawnFloatingText(x, y, `+${game.clickPower}`);
+            
+            updateUI();
+        });
+
+        window.buyUpgrade = function(index) {
+            let upg = game.upgrades[index];
+            if (game.score >= upg.cost) {
+                game.score -= upg.cost;
+                upg.count++;
+                if (upg.type === 'click') {
+                    game.clickPower += upg.power;
+                } else if (upg.type === 'passive') {
+                    game.cps += upg.power;
+                }
+                upg.cost = Math.floor(upg.cost * 1.15);
+                renderUpgrades();
+                updateUI();
+            }
+        };
+
+        // Game Loop
+        let lastTime = performance.now();
+        function loop(now) {
+            const delta = (now - lastTime) / 1000;
+            lastTime = now;
+
+            if (game.cps > 0) {
+                game.score += game.cps * delta;
+                updateUI();
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        renderUpgrades();
+        updateUI();
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>

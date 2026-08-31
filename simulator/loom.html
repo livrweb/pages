@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Backrooms</title>
+    <style>
+        * { box-sizing: border-box; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; touch-action: none; }
+        #game-container { display: flex; flex-direction: column; height: 100vh; }
+        canvas { width: 100%; flex-grow: 1; image-rendering: pixelated; }
+        #controls-wrapper { height: 35vh; background: #111; position: relative; border-top: 2px solid #333; }
+        .control-panel { display: none; width: 100%; height: 100%; justify-content: center; align-items: center; padding: 10px; }
+        .control-panel.active { display: flex; }
+        #toggle-btn { position: absolute; top: 10px; right: 10px; z-index: 10; background: #333; color: #fff; border: 1px solid #555; padding: 5px 10px; border-radius: 5px; font-size: 14px; }
+        .btn-group { display: flex; flex-direction: column; gap: 10px; margin: 0 20px; }
+        .row { display: flex; gap: 10px; justify-content: center; }
+        .btn { background: #333; color: #fff; border: 2px solid #555; border-radius: 8px; width: 60px; height: 60px; font-size: 24px; display: flex; justify-content: center; align-items: center; user-select: none; }
+        .btn:active { background: #666; border-color: #888; }
+        #arrows-pad { display: grid; grid-template-columns: 60px 60px 60px; grid-template-rows: 60px 60px 60px; gap: 5px; }
+        #arrows-pad .btn-up { grid-column: 2; grid-row: 1; }
+        #arrows-pad .btn-left { grid-column: 1; grid-row: 2; }
+        #arrows-pad .btn-right { grid-column: 3; grid-row: 2; }
+        #arrows-pad .btn-down { grid-column: 2; grid-row: 3; }
+        #joystick-area { width: 150px; height: 150px; background: #222; border-radius: 50%; position: relative; border: 2px solid #444; }
+        #joystick-knob { width: 60px; height: 60px; background: #666; border-radius: 50%; position: absolute; top: 45px; left: 45px; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    <div id="controls-wrapper">
+        <button id="toggle-btn">Mode: Current</button>
+        
+        <div id="ctrl-current" class="control-panel active">
+            <div class="btn-group">
+                <div class="row">
+                    <div class="btn" id="btnLeft">↺</div>
+                    <div class="btn" id="btnRight">↻</div>
+                </div>
+            </div>
+            <div class="btn-group">
+                <div class="row">
+                    <div class="btn" id="btnFwd">▲</div>
+                </div>
+                <div class="row">
+                    <div class="btn" id="btnBack">▼</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="ctrl-arrows" class="control-panel">
+            <div id="arrows-pad">
+                <div class="btn btn-up" id="arrFwd">▲</div>
+                <div class="btn btn-left" id="arrLeft">◀</div>
+                <div class="btn btn-right" id="arrRight">▶</div>
+                <div class="btn btn-down" id="arrBack">▼</div>
+            </div>
+        </div>
+
+        <div id="ctrl-joystick" class="control-panel">
+            <div id="joystick-area">
+                <div id="joystick-knob"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const screenWidth = 320;
+    const screenHeight = 200;
+    canvas.width = screenWidth;
+    canvas.height = screenHeight;
+
+    const texW = 64;
+    const texH = 64;
+    const tCtx = document.createElement('canvas').getContext('2d');
+    tCtx.canvas.width = texW;
+    tCtx.canvas.height = texH;
+
+    tCtx.fillStyle = '#D4C37A';
+    tCtx.fillRect(0, 0, texW, texH);
+    tCtx.fillStyle = '#C2B16B';
+    for (let i = 0; i < texW; i += 16) {
+        tCtx.fillRect(i, 0, 2, texH);
+    }
+    tCtx.fillStyle = 'rgba(0,0,0,0.05)';
+    for (let i = 0; i < 500; i++) {
+        tCtx.fillRect(Math.random() * texW, Math.random() * texH, 1, 1);
+    }
+    const wallTex = tCtx.getImageData(0, 0, texW, texH).data;
+
+    tCtx.clearRect(0, 0, texW, texH);
+
+    tCtx.fillStyle = '#000000';
+    tCtx.fillRect(28, 30, 8, 34);
+    tCtx.fillRect(22, 30, 4, 25);
+    tCtx.fillRect(38, 30, 4, 25);
+
+    tCtx.fillStyle = '#e8cd78';
+    tCtx.strokeStyle = '#000000';
+    tCtx.lineWidth = 2;
+    tCtx.beginPath();
+    tCtx.arc(32, 18, 14, 0, Math.PI * 2);
+    tCtx.fill();
+    tCtx.stroke();
+
+    tCtx.fillStyle = '#FFFFFF';
+    tCtx.beginPath();
+    tCtx.arc(26, 14, 5, 0, Math.PI*2);
+    tCtx.arc(38, 14, 5, 0, Math.PI*2);
+    tCtx.fill();
+    tCtx.stroke();
+
+    tCtx.fillStyle = '#000000';
+    tCtx.beginPath();
+    tCtx.arc(26, 14, 2, 0, Math.PI*2);
+    tCtx.arc(38, 14, 2, 0, Math.PI*2);
+    tCtx.fill();
+
+    tCtx.beginPath();
+    tCtx.arc(32, 20, 8, 0, Math.PI);
+    tCtx.stroke();
+
+    const entTex = tCtx.getImageData(0, 0, texW, texH).data;
+
+    const worldMap = [
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
+        [1,0,1,0,1,0,1,1,1,0,1,0,1,1,1,1,1,1,0,1],
+        [1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,1],
+        [1,0,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,0,1],
+        [1,0,0,0,0,0,1,0,0,0,0,0,1,0,1,0,0,1,0,1],
+        [1,1,1,1,1,0,1,1,1,1,1,0,1,0,1,0,1,1,0,1],
+        [1,0,0,0,0,0,0,0,0,0,1,0,1,0,1,0,0,0,0,1],
+        [1,0,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    ];
+
+    let posX = 1.5, posY = 1.5;
+    let dirX = 1.0, dirY = 0.0;
+    let planeX = 0.0, planeY = 0.66;
+    
+    let entities = [
+        { x: 18.5, y: 9.5, tex: entTex }
+    ];
+
+    let zBuffer = new Array(screenWidth).fill(0);
+
+    const keys = { fwd: false, back: false, left: false, right: false, rotL: false, rotR: false };
+    let joyX = 0, joyY = 0;
+
+    let ctrlMode = 0;
+    const ctrlPanels = document.querySelectorAll('.control-panel');
+    const toggleBtn = document.getElementById('toggle-btn');
+    const modeNames = ["Current", "Arrows", "Joystick"];
+
+    toggleBtn.addEventListener('click', () => {
+        ctrlMode = (ctrlMode + 1) % 3;
+        toggleBtn.innerText = "Mode: " + modeNames[ctrlMode];
+        ctrlPanels.forEach((p, i) => {
+            p.classList.toggle('active', i === ctrlMode);
+        });
+        keys.fwd = keys.back = keys.left = keys.right = keys.rotL = keys.rotR = false;
+        joyX = joyY = 0;
+        updateKnob(0, 0);
+    });
+
+    const bindK = (id, k) => {
+        const b = document.getElementById(id);
+        if(!b) return;
+        b.addEventListener('touchstart', e => { e.preventDefault(); keys[k] = true; });
+        b.addEventListener('touchend', e => { e.preventDefault(); keys[k] = false; });
+        b.addEventListener('mousedown', () => keys[k] = true);
+        b.addEventListener('mouseup', () => keys[k] = false);
+        b.addEventListener('mouseleave', () => keys[k] = false);
+    };
+
+    bindK('btnFwd', 'fwd'); bindK('btnBack', 'back'); bindK('btnLeft', 'rotL'); bindK('btnRight', 'rotR');
+    bindK('arrFwd', 'fwd'); bindK('arrBack', 'back'); bindK('arrLeft', 'rotL'); bindK('arrRight', 'rotR');
+
+    const joyArea = document.getElementById('joystick-area');
+    const joyKnob = document.getElementById('joystick-knob');
+    let joyActive = false;
+    let jCenterX = 0, jCenterY = 0;
+
+    const updateKnob = (x, y) => {
+        joyKnob.style.transform = `translate(${x}px, ${y}px)`;
+    };
+
+    const handleJoyStart = (e) => {
+        e.preventDefault();
+        joyActive = true;
+        const rect = joyArea.getBoundingClientRect();
+        jCenterX = rect.left + rect.width / 2;
+        jCenterY = rect.top + rect.height / 2;
+        handleJoyMove(e);
+    };
+
+    const handleJoyMove = (e) => {
+        e.preventDefault();
+        if(!joyActive) return;
+        const pt = e.touches ? e.touches[0] : e;
+        let dx = pt.clientX - jCenterX;
+        let dy = pt.clientY - jCenterY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const maxD = 45;
+        if(dist > maxD) {
+            dx = (dx / dist) * maxD;
+            dy = (dy / dist) * maxD;
+        }
+        updateKnob(dx, dy);
+        joyX = dx / maxD;
+        joyY = dy / maxD;
+    };
+
+    const handleJoyEnd = (e) => {
+        e.preventDefault();
+        joyActive = false;
+        joyX = joyY = 0;
+        updateKnob(0, 0);
+    };
+
+    joyArea.addEventListener('touchstart', handleJoyStart);
+    joyArea.addEventListener('touchmove', handleJoyMove);
+    joyArea.addEventListener('touchend', handleJoyEnd);
+    joyArea.addEventListener('mousedown', handleJoyStart);
+    window.addEventListener('mousemove', handleJoyMove);
+    window.addEventListener('mouseup', handleJoyEnd);
+
+    window.addEventListener('keydown', (e) => {
+        if(e.key === 'w' || e.key === 'ArrowUp') keys.fwd = true;
+        if(e.key === 's' || e.key === 'ArrowDown') keys.back = true;
+        if(e.key === 'a' || e.key === 'ArrowLeft') keys.rotL = true;
+        if(e.key === 'd' || e.key === 'ArrowRight') keys.rotR = true;
+    });
+    window.addEventListener('keyup', (e) => {
+        if(e.key === 'w' || e.key === 'ArrowUp') keys.fwd = false;
+        if(e.key === 's' || e.key === 'ArrowDown') keys.back = false;
+        if(e.key === 'a' || e.key === 'ArrowLeft') keys.rotL = false;
+        if(e.key === 'd' || e.key === 'ArrowRight') keys.rotR = false;
+    });
+
+    const offCvs = document.createElement('canvas');
+    offCvs.width = screenWidth;
+    offCvs.height = screenHeight;
+    const offCtx = offCvs.getContext('2d');
+
+    function update() {
+        let mSpeed = 0.05;
+        let rSpeed = 0.04;
+
+        let moveV = 0;
+        let rotV = 0;
+
+        if(ctrlMode === 0 || ctrlMode === 1) {
+            if(keys.fwd) moveV = 1;
+            if(keys.back) moveV = -1;
+            if(keys.rotL) rotV = -1;
+            if(keys.rotR) rotV = 1;
+        } else if(ctrlMode === 2) {
+            moveV = -joyY;
+            rotV = joyX;
+            if(Math.abs(moveV) < 0.1) moveV = 0;
+            if(Math.abs(rotV) < 0.1) rotV = 0;
+        }
+
+        if(moveV !== 0) {
+            const nx = posX + dirX * mSpeed * moveV;
+            const ny = posY + dirY * mSpeed * moveV;
+            if(worldMap[Math.floor(posY)][Math.floor(nx)] === 0) posX = nx;
+            if(worldMap[Math.floor(ny)][Math.floor(posX)] === 0) posY = ny;
+        }
+
+        if(rotV !== 0) {
+            const rs = rSpeed * rotV;
+            const oldDirX = dirX;
+            dirX = dirX * Math.cos(rs) - dirY * Math.sin(rs);
+            dirY = oldDirX * Math.sin(rs) + dirY * Math.cos(rs);
+            const oldPlaneX = planeX;
+            planeX = planeX * Math.cos(rs) - planeY * Math.sin(rs);
+            planeY = oldPlaneX * Math.sin(rs) + planeY * Math.cos(rs);
+        }
+
+        const entSpeed = 0.015;
+        for (let i = 0; i < entities.length; i++) {
+            const e = entities[i];
+            let dx = posX - e.x;
+            let dy = posY - e.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist > 0.4) {
+                let mx = (dx / dist) * entSpeed;
+                let my = (dy / dist) * entSpeed;
+                if(worldMap[Math.floor(e.y)][Math.floor(e.x + mx)] === 0) e.x += mx;
+                if(worldMap[Math.floor(e.y + my)][Math.floor(e.x)] === 0) e.y += my;
+            }
+        }
+    }
+
+    function render() {
+        offCtx.fillStyle = '#000';
+        offCtx.fillRect(0, 0, screenWidth, screenHeight);
+
+        for (let y = screenHeight / 2; y < screenHeight; y++) {
+            const p = y - screenHeight / 2;
+            const posZ = 0.5 * screenHeight;
+            const rowDistance = posZ / p;
+            
+            const fog = Math.max(0, 1 - (rowDistance / 8));
+            offCtx.fillStyle = `rgba(180, 160, 100, ${fog * 0.4})`;
+            offCtx.fillRect(0, y, screenWidth, 1);
+
+            offCtx.fillStyle = `rgba(220, 220, 200, ${fog * 0.3})`;
+            offCtx.fillRect(0, screenHeight - y - 1, screenWidth, 1);
+        }
+
+        const imgData = offCtx.getImageData(0, 0, screenWidth, screenHeight);
+        const data = imgData.data;
+
+        for (let x = 0; x < screenWidth; x++) {
+            const cameraX = 2 * x / screenWidth - 1;
+            const rayDirX = dirX + planeX * cameraX;
+            const rayDirY = dirY + planeY * cameraX;
+
+            let mapX = Math.floor(posX);
+            let mapY = Math.floor(posY);
+            let sideDistX, sideDistY;
+            const deltaDistX = Math.abs(1 / rayDirX);
+            const deltaDistY = Math.abs(1 / rayDirY);
+            let perpWallDist;
+            let stepX, stepY;
+            let hit = 0;
+            let side;
+
+            if (rayDirX < 0) { stepX = -1; sideDistX = (posX - mapX) * deltaDistX; } 
+            else { stepX = 1; sideDistX = (mapX + 1.0 - posX) * deltaDistX; }
+            if (rayDirY < 0) { stepY = -1; sideDistY = (posY - mapY) * deltaDistY; } 
+            else { stepY = 1; sideDistY = (mapY + 1.0 - posY) * deltaDistY; }
+
+            while (hit === 0) {
+                if (sideDistX < sideDistY) { sideDistX += deltaDistX; mapX += stepX; side = 0; } 
+                else { sideDistY += deltaDistY; mapY += stepY; side = 1; }
+                if (mapY < 0 || mapY >= worldMap.length || mapX < 0 || mapX >= worldMap[0].length) { hit = 1; break; }
+                if (worldMap[mapY][mapX] > 0) hit = 1;
+            }
+
+            if (side === 0) perpWallDist = (mapX - posX + (1 - stepX) / 2) / rayDirX;
+            else perpWallDist = (mapY - posY + (1 - stepY) / 2) / rayDirY;
+
+            zBuffer[x] = perpWallDist;
+
+            const lineHeight = Math.floor(screenHeight / perpWallDist);
+            let drawStart = Math.floor(-lineHeight / 2 + screenHeight / 2);
+            if (drawStart < 0) drawStart = 0;
+            let drawEnd = Math.floor(lineHeight / 2 + screenHeight / 2);
+            if (drawEnd >= screenHeight) drawEnd = screenHeight - 1;
+
+            let wallX;
+            if (side === 0) wallX = posY + perpWallDist * rayDirY;
+            else wallX = posX + perpWallDist * rayDirX;
+            wallX -= Math.floor(wallX);
+
+            let texX = Math.floor(wallX * texW);
+            if(side === 0 && rayDirX > 0) texX = texW - texX - 1;
+            if(side === 1 && rayDirY < 0) texX = texW - texX - 1;
+
+            const step = texH / lineHeight;
+            let texPos = (drawStart - screenHeight / 2 + lineHeight / 2) * step;
+
+            const fog = Math.max(0, Math.min(1, perpWallDist / 6));
+
+            for (let y = drawStart; y < drawEnd; y++) {
+                const texY = Math.floor(texPos) & (texH - 1);
+                texPos += step;
+                const cIdx = (texY * texW + texX) * 4;
+                let r = wallTex[cIdx];
+                let g = wallTex[cIdx+1];
+                let b = wallTex[cIdx+2];
+
+                if(side === 1) { r = (r*0.7)|0; g = (g*0.7)|0; b = (b*0.7)|0; }
+
+                r = r * (1 - fog);
+                g = g * (1 - fog);
+                b = b * (1 - fog);
+
+                const dIdx = (y * screenWidth + x) * 4;
+                data[dIdx] = r;
+                data[dIdx+1] = g;
+                data[dIdx+2] = b;
+                data[dIdx+3] = 255;
+            }
+        }
+
+        for (let i = 0; i < entities.length; i++) {
+            const e = entities[i];
+            e.dist = ((posX - e.x) * (posX - e.x) + (posY - e.y) * (posY - e.y));
+        }
+        entities.sort((a, b) => b.dist - a.dist);
+
+        for (let i = 0; i < entities.length; i++) {
+            const e = entities[i];
+            const spriteX = e.x - posX;
+            const spriteY = e.y - posY;
+
+            const invDet = 1.0 / (planeX * dirY - dirX * planeY);
+            const transformX = invDet * (dirY * spriteX - dirX * spriteY);
+            const transformY = invDet * (-planeY * spriteX + planeX * spriteY);
+
+            const spriteScreenX = Math.floor((screenWidth / 2) * (1 + transformX / transformY));
+
+            const spriteHeight = Math.abs(Math.floor(screenHeight / transformY));
+            let drawStartY = Math.floor(-spriteHeight / 2 + screenHeight / 2);
+            if (drawStartY < 0) drawStartY = 0;
+            let drawEndY = Math.floor(spriteHeight / 2 + screenHeight / 2);
+            if (drawEndY >= screenHeight) drawEndY = screenHeight - 1;
+
+            const spriteWidth = Math.abs(Math.floor(screenHeight / transformY));
+            let drawStartX = Math.floor(-spriteWidth / 2 + spriteScreenX);
+            if (drawStartX < 0) drawStartX = 0;
+            let drawEndX = Math.floor(spriteWidth / 2 + spriteScreenX);
+            if (drawEndX >= screenWidth) drawEndX = screenWidth - 1;
+
+            const fog = Math.max(0, Math.min(1, transformY / 6));
+
+            for (let stripe = drawStartX; stripe < drawEndX; stripe++) {
+                const texX = Math.floor((stripe - (-spriteWidth / 2 + spriteScreenX)) * texW / spriteWidth);
+                if (transformY > 0 && stripe > 0 && stripe < screenWidth && transformY < zBuffer[stripe]) {
+                    for (let y = drawStartY; y < drawEndY; y++) {
+                        const d = (y) * 256 - screenHeight * 128 + spriteHeight * 128;
+                        const texY = ((d * texH) / spriteHeight) / 256;
+                        const cIdx = (Math.floor(texY) * texW + texX) * 4;
+                        
+                        const a = e.tex[cIdx+3];
+                        if (a > 50) {
+                            let r = e.tex[cIdx];
+                            let g = e.tex[cIdx+1];
+                            let b = e.tex[cIdx+2];
+
+                            r = r * (1 - fog);
+                            g = g * (1 - fog);
+                            b = b * (1 - fog);
+
+                            const dIdx = (y * screenWidth + stripe) * 4;
+                            data[dIdx] = r;
+                            data[dIdx+1] = g;
+                            data[dIdx+2] = b;
+                        }
+                    }
+                }
+            }
+        }
+
+        offCtx.putImageData(imgData, 0, 0);
+        ctx.drawImage(offCvs, 0, 0, screenWidth, screenHeight);
+    }
+
+    function gameLoop() {
+        update();
+        render();
+        requestAnimationFrame(gameLoop);
+    }
+
+    requestAnimationFrame(gameLoop);
+</script>
+
+</body>
+</html>
+

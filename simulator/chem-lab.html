@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Virtual Chem Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-1:#0a1a1f;
+    --bg-2:#12282f;
+    --panel:rgba(255,255,255,0.045);
+    --panel-border:rgba(94,234,212,0.16);
+    --cyan:#5eead4;
+    --amber:#f5a623;
+    --coral:#ff6f6f;
+    --violet:#b48af5;
+    --text-1:#e8f3f1;
+    --text-2:#8fa8a5;
+    --mono:'IBM Plex Mono', monospace;
+    --display:'Space Grotesk', sans-serif;
+    --body:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 15% 0%, rgba(94,234,212,0.07), transparent 45%),
+      radial-gradient(circle at 90% 15%, rgba(180,138,245,0.06), transparent 40%),
+      linear-gradient(180deg, var(--bg-1), var(--bg-2) 60%, #0c1c21);
+    color:var(--text-1);
+    font-family:var(--body);
+    min-height:100vh;
+    padding-bottom:40px;
+    background-attachment:fixed;
+  }
+  /* faint graph-paper texture */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(94,234,212,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(94,234,212,0.035) 1px, transparent 1px);
+    background-size: 26px 26px;
+    pointer-events:none;
+    z-index:0;
+  }
+  .wrap{position:relative; z-index:1; max-width:520px; margin:0 auto; padding:18px 16px 0;}
+
+  header{padding:14px 4px 18px; display:flex; align-items:center; gap:12px;}
+  .flask-icon{flex:none; width:34px; height:34px;}
+  header h1{
+    font-family:var(--display); font-weight:700; font-size:1.32rem;
+    margin:0; letter-spacing:0.01em; line-height:1.15;
+  }
+  header p{margin:2px 0 0; font-size:0.76rem; color:var(--text-2); font-family:var(--mono); letter-spacing:0.02em;}
+
+  .stage{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:20px;
+    padding:22px 16px 16px;
+    backdrop-filter:blur(6px);
+    box-shadow:0 20px 50px -25px rgba(0,0,0,0.6);
+    position:relative;
+    overflow:hidden;
+  }
+  .stage::after{
+    content:"";
+    position:absolute; top:-40%; left:-10%; width:60%; height:180%;
+    background:radial-gradient(circle, rgba(94,234,212,0.06), transparent 70%);
+    pointer-events:none;
+  }
+
+  /* ---- Beaker ---- */
+  .beaker-zone{display:flex; justify-content:center; padding:6px 0 10px;}
+  .beaker-outer{
+    position:relative;
+    width:168px; height:198px;
+  }
+  .beaker-glass{
+    position:absolute; inset:0;
+    clip-path: polygon(22% 0%, 78% 0%, 78% 6%, 100% 88%, 100% 96%, 92% 100%, 8% 100%, 0% 96%, 0% 88%, 22% 6%);
+    background:linear-gradient(160deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 40%, rgba(255,255,255,0.05));
+    border:1.5px solid rgba(232,243,241,0.35);
+    overflow:hidden;
+  }
+  .beaker-glass .rim{
+    position:absolute; top:0; left:20%; right:20%; height:6%;
+    background:rgba(232,243,241,0.5);
+  }
+  .liquid{
+    position:absolute; left:0; right:0; bottom:0;
+    height:0%;
+    background:#274049;
+    transition: height 0.9s cubic-bezier(.4,0,.2,1), background 1.1s ease;
+    overflow:visible;
+  }
+  .liquid::before{
+    content:"";
+    position:absolute; top:-4px; left:0; right:0; height:8px;
+    background:inherit; filter:brightness(1.3);
+    border-radius:50%/6px;
+    opacity:0.8;
+  }
+  .sediment{
+    position:absolute; left:6%; right:6%; bottom:0; height:0px;
+    background:#5a5a5a; border-radius:2px 2px 0 0;
+    transition:height 1.4s ease 0.3s;
+    opacity:0.9;
+  }
+  .bubble{
+    position:absolute; bottom:0; border-radius:50%;
+    background:rgba(255,255,255,0.55);
+    animation:rise linear forwards;
+  }
+  @keyframes rise{
+    0%{ transform:translateY(0) scale(0.6); opacity:0.9;}
+    75%{ opacity:0.7;}
+    100%{ transform:translateY(-140px) scale(1.1); opacity:0;}
+  }
+  .foam-bit{
+    position:absolute; border-radius:50%;
+    background:#f2fbf9;
+    box-shadow:0 0 6px rgba(255,255,255,0.5);
+    animation:foamPop ease-out forwards;
+  }
+  @keyframes foamPop{
+    0%{ transform:translateY(0) scale(0.4); opacity:0.95;}
+    100%{ transform:translateY(-70px) scale(1); opacity:0;}
+  }
+  .beaker-outer.shake{ animation:shake 0.4s ease; }
+  @keyframes shake{
+    0%,100%{transform:translateX(0);}
+    20%{transform:translateX(-4px) rotate(-1deg);}
+    40%{transform:translateX(4px) rotate(1deg);}
+    60%{transform:translateX(-3px);}
+    80%{transform:translateX(3px);}
+  }
+
+  /* readout */
+  .readout{
+    margin-top:10px;
+    background:#0c1a1c;
+    border:1px solid rgba(94,234,212,0.22);
+    border-radius:10px;
+    padding:10px 12px;
+    font-family:var(--mono);
+    font-size:0.72rem;
+    color:var(--cyan);
+    letter-spacing:0.02em;
+    display:flex; justify-content:space-between; gap:10px;
+    box-shadow:inset 0 0 14px rgba(94,234,212,0.06);
+  }
+  .readout span.dim{color:var(--text-2);}
+
+  /* ---- Shelf ---- */
+  .section-label{
+    font-family:var(--mono); font-size:0.68rem; color:var(--text-2);
+    text-transform:uppercase; letter-spacing:0.12em; margin:22px 4px 8px;
+  }
+  .shelf{
+    display:flex; gap:9px; overflow-x:auto; padding:2px 2px 10px;
+    scroll-snap-type:x proximity;
+  }
+  .shelf::-webkit-scrollbar{height:4px;}
+  .shelf::-webkit-scrollbar-thumb{background:rgba(94,234,212,0.25); border-radius:4px;}
+  .reagent{
+    flex:none; scroll-snap-align:start;
+    width:98px; min-height:96px;
+    border-radius:14px;
+    border:1px solid var(--panel-border);
+    background:rgba(255,255,255,0.03);
+    padding:10px 8px;
+    display:flex; flex-direction:column; gap:6px;
+    cursor:pointer;
+    transition:border-color 0.2s, background 0.2s, transform 0.15s;
+    -webkit-user-select:none; user-select:none;
+  }
+  .reagent:active{transform:scale(0.96);}
+  .reagent.selected{
+    border-color:var(--cyan);
+    background:rgba(94,234,212,0.09);
+    box-shadow:0 0 0 1px var(--cyan) inset;
+  }
+  .swatch{width:20px; height:20px; border-radius:50%; border:1px solid rgba(255,255,255,0.25);}
+  .reagent .name{font-size:0.74rem; font-weight:600; line-height:1.15;}
+  .reagent .formula{font-family:var(--mono); font-size:0.63rem; color:var(--text-2);}
+
+  /* ---- Controls ---- */
+  .controls{display:flex; gap:10px; margin-top:14px;}
+  button.action{
+    flex:1;
+    font-family:var(--display); font-weight:600; font-size:0.88rem;
+    border:none; border-radius:12px;
+    padding:13px 10px;
+    cursor:pointer;
+    -webkit-user-select:none; user-select:none;
+    transition:transform 0.12s, opacity 0.2s;
+  }
+  button.action:active{transform:scale(0.97);}
+  button.action:disabled{opacity:0.35; cursor:default;}
+  #combineBtn{background:linear-gradient(135deg, var(--cyan), #38b6a4); color:#062522;}
+  #resetBtn{background:rgba(255,255,255,0.06); color:var(--text-1); border:1px solid var(--panel-border);}
+
+  .hint{font-size:0.72rem; color:var(--text-2); text-align:center; margin-top:8px; font-family:var(--mono);}
+
+  /* ---- Log ---- */
+  .log{
+    margin-top:10px; display:flex; flex-direction:column-reverse; gap:8px;
+    max-height:220px; overflow-y:auto; padding-right:2px;
+  }
+  .log-entry{
+    background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.06);
+    border-left:3px solid var(--cyan);
+    border-radius:8px;
+    padding:9px 11px;
+    font-size:0.78rem;
+  }
+  .log-entry.warn{border-left-color:var(--amber);}
+  .log-entry.calm{border-left-color:var(--text-2);}
+  .log-entry .t{font-family:var(--mono); font-size:0.62rem; color:var(--text-2); margin-bottom:3px; display:block;}
+  .log-empty{font-size:0.78rem; color:var(--text-2); text-align:center; padding:14px 0; font-family:var(--mono);}
+
+  /* ---- Safety accordion ---- */
+  .safety{margin-top:22px;}
+  details{
+    background:rgba(255,255,255,0.03);
+    border:1px solid var(--panel-border);
+    border-radius:12px;
+    padding:2px 14px;
+    margin-bottom:8px;
+  }
+  summary{
+    padding:11px 0; font-size:0.82rem; font-weight:600; cursor:pointer;
+    display:flex; justify-content:space-between; align-items:center;
+    list-style:none;
+  }
+  summary::-webkit-details-marker{display:none;}
+  summary::after{content:"+"; color:var(--cyan); font-size:1rem; font-family:var(--mono);}
+  details[open] summary::after{content:"–";}
+  details p{margin:0 0 12px; font-size:0.78rem; color:var(--text-2); line-height:1.5;}
+
+  footer{
+    text-align:center; margin-top:26px; padding:0 10px;
+    font-family:var(--mono); font-size:0.66rem; color:var(--text-2); opacity:0.7;
+    line-height:1.6;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <svg class="flask-icon" viewBox="0 0 48 48" fill="none">
+      <path d="M19 6H29V16L38 36C39.5 39.5 37 43 33 43H15C11 43 8.5 39.5 10 36L19 16V6Z" stroke="#5eead4" stroke-width="2.4" stroke-linejoin="round"/>
+      <path d="M16 6H32" stroke="#5eead4" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="22" cy="30" r="1.8" fill="#f5a623"/>
+      <circle cx="27" cy="34" r="1.3" fill="#5eead4"/>
+      <circle cx="24" cy="24" r="1.1" fill="#ff6f6f"/>
+    </svg>
+    <div>
+      <h1>Virtual Chem Lab</h1>
+      <p>TAP · MIX · OBSERVE</p>
+    </div>
+  </header>
+
+  <div class="stage">
+    <div class="beaker-zone">
+      <div class="beaker-outer" id="beakerOuter">
+        <div class="beaker-glass">
+          <div class="rim"></div>
+          <div class="liquid" id="liquid"></div>
+          <div class="sediment" id="sediment"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="readout">
+      <span id="readoutStatus">STANDING BY</span>
+      <span class="dim" id="readoutMix">— / —</span>
+    </div>
+
+    <div class="section-label">Select up to 2 reagents</div>
+    <div class="shelf" id="shelf"></div>
+
+    <div class="controls">
+      <button class="action" id="resetBtn">Empty beaker</button>
+      <button class="action" id="combineBtn" disabled>Combine</button>
+    </div>
+    <div class="hint">Choose two reagents from the shelf, then combine them.</div>
+  </div>
+
+  <div class="section-label">Reaction log</div>
+  <div class="log" id="log">
+    <div class="log-empty">No reactions run yet — your results will appear here.</div>
+  </div>
+
+  <div class="safety">
+    <div class="section-label" style="margin-left:0">Reagent notes</div>
+    <div id="safetyList"></div>
+  </div>
+
+  <footer>
+    Simulated reactions for learning purposes only.<br>
+    Colors and timings are illustrative, not lab-accurate measurements.
+  </footer>
+</div>
+
+<script>
+const REAGENTS = [
+  {id:'vinegar', name:'Vinegar', formula:'CH₃COOH', color:'#eef3e6', note:'A mild household acid. In real labs, dilute acids are handled with gloves and eye protection.'},
+  {id:'soda', name:'Baking Soda', formula:'NaHCO₃', color:'#f4f4f0', note:'A mild base / powder. Harmless to touch, but keep it dry and sealed between uses.'},
+  {id:'cabbage', name:'Cabbage Indicator', formula:'Anthocyanin extract', color:'#9a5fc0', note:'A natural pH indicator brewed from red cabbage — shifts color with acidity or alkalinity.'},
+  {id:'coppersulfate', name:'Copper Sulfate', formula:'CuSO₄', color:'#3f86dd', note:'A vivid blue salt solution. Toxic if ingested — real samples are never tasted or handled bare-handed.'},
+  {id:'iron', name:'Iron Filings', formula:'Fe', color:'#6a6a6a', note:'Fine metal shavings. Real filings have sharp edges and are moved with a scoop, not fingers.'},
+  {id:'iodine', name:'Iodine Solution', formula:'I₂ / KI', color:'#7a3b12', note:'A deep amber solution used for classic starch tests. Stains skin and fabric on contact.'},
+  {id:'starch', name:'Starch Solution', formula:'(C₆H₁₀O₅)ₙ', color:'#f6f6ee', note:'A clear, thickened solution made from dissolved starch. Non-hazardous.'},
+  {id:'peroxide', name:'Hydrogen Peroxide', formula:'H₂O₂', color:'#e9f6f5', note:'A mild oxidizer. Household strength is safe to view, but stronger lab-grade solutions irritate skin and eyes.'},
+  {id:'yeast', name:'Yeast + Soap', formula:'Catalase catalyst', color:'#caa96b', note:'A biological catalyst that speeds up peroxide breakdown. Non-toxic, but the foam it produces can stain surfaces.'}
+];
+
+// key = sorted ids joined by '+'
+const REACTIONS = {
+  'soda+vinegar': {
+    type:'fizz', color:'#e7ecd8',
+    status:'ACID + CARBONATE', label:'Fizzing reaction',
+    log:'Vigorous fizzing as CO₂ gas escapes — the acid dissolves the carbonate.',
+    tone:'calm'
+  },
+  'cabbage+vinegar': {
+    type:'color', color:'#e5507a',
+    status:'pH SHIFT · ACIDIC', label:'Indicator turns pink-red',
+    log:'The indicator shifts toward pink-red, signalling an acidic mixture.',
+    tone:'calm'
+  },
+  'cabbage+soda': {
+    type:'color', color:'#3fae7a',
+    status:'pH SHIFT · BASIC', label:'Indicator turns blue-green',
+    log:'The indicator shifts toward blue-green, signalling a basic mixture.',
+    tone:'calm'
+  },
+  'coppersulfate+iron': {
+    type:'precipitate', color:'#8fae7a', sediment:'#a8703f',
+    status:'DISPLACEMENT', label:'Copper displaced onto iron',
+    log:'The blue solution fades as reddish copper deposits form and settle out.',
+    tone:'warn'
+  },
+  'iodine+starch': {
+    type:'color', color:'#12142a',
+    status:'STARCH TEST +', label:'Deep blue-black complex',
+    log:'A deep blue-black color forms instantly — the classic iodine–starch test.',
+    tone:'calm'
+  },
+  'peroxide+yeast': {
+    type:'foam', color:'#e9dfae',
+    status:'RAPID DECOMPOSITION', label:'Foam eruption',
+    log:'Rapid foaming as the catalyst accelerates oxygen release from the peroxide.',
+    tone:'warn'
+  }
+};
+
+let selected = [];
+let reacting = false;
+let logCount = 0;
+
+const shelf = document.getElementById('shelf');
+const combineBtn = document.getElementById('combineBtn');
+const resetBtn = document.getElementById('resetBtn');
+const liquid = document.getElementById('liquid');
+const sediment = document.getElementById('sediment');
+const beakerOuter = document.getElementById('beakerOuter');
+const readoutStatus = document.getElementById('readoutStatus');
+const readoutMix = document.getElementById('readoutMix');
+const logEl = document.getElementById('log');
+const safetyList = document.getElementById('safetyList');
+
+function renderShelf(){
+  REAGENTS.forEach(r=>{
+    const card = document.createElement('div');
+    card.className = 'reagent';
+    card.dataset.id = r.id;
+    card.innerHTML = `
+      <div class="swatch" style="background:${r.color}"></div>
+      <div class="name">${r.name}</div>
+      <div class="formula">${r.formula}</div>
+    `;
+    card.addEventListener('click', ()=> toggleSelect(r.id, card));
+    shelf.appendChild(card);
+  });
+}
+
+function renderSafety(){
+  REAGENTS.forEach(r=>{
+    const d = document.createElement('details');
+    d.innerHTML = `<summary>${r.name}</summary><p>${r.note}</p>`;
+    safetyList.appendChild(d);
+  });
+}
+
+function toggleSelect(id, card){
+  if(reacting) return;
+  const idx = selected.indexOf(id);
+  if(idx > -1){
+    selected.splice(idx,1);
+    card.classList.remove('selected');
+  } else {
+    if(selected.length >= 2){
+      const firstId = selected.shift();
+      document.querySelector(`.reagent[data-id="${firstId}"]`).classList.remove('selected');
+    }
+    selected.push(id);
+    card.classList.add('selected');
+  }
+  updateReadout();
+  combineBtn.disabled = selected.length !== 2;
+}
+
+function nameOf(id){ return REAGENTS.find(r=>r.id===id).name; }
+
+function updateReadout(){
+  if(selected.length === 0){
+    readoutMix.textContent = '— / —';
+  } else if(selected.length === 1){
+    readoutMix.textContent = `${nameOf(selected[0])} / —`;
+  } else {
+    readoutMix.textContent = `${nameOf(selected[0])} / ${nameOf(selected[1])}`;
+  }
+}
+
+function spawnBubbles(count, colorLight){
+  const zone = liquid;
+  for(let i=0;i<count;i++){
+    setTimeout(()=>{
+      const b = document.createElement('div');
+      b.className = 'bubble';
+      const size = 4 + Math.random()*7;
+      b.style.width = size+'px';
+      b.style.height = size+'px';
+      b.style.left = (10 + Math.random()*80) + '%';
+      b.style.animationDuration = (1 + Math.random()*0.8) + 's';
+      zone.appendChild(b);
+      b.addEventListener('animationend', ()=> b.remove());
+    }, i*70);
+  }
+}
+
+function spawnFoam(count){
+  const zone = document.querySelector('.beaker-glass');
+  for(let i=0;i<count;i++){
+    setTimeout(()=>{
+      const f = document.createElement('div');
+      f.className = 'foam-bit';
+      const size = 5 + Math.random()*9;
+      f.style.width = size+'px';
+      f.style.height = size+'px';
+      f.style.left = (8 + Math.random()*84) + '%';
+      f.style.bottom = '58%';
+      f.style.animationDuration = (0.9 + Math.random()*0.9) + 's';
+      zone.appendChild(f);
+      f.addEventListener('animationend', ()=> f.remove());
+    }, i*40);
+  }
+}
+
+function addLog(text, tone){
+  logCount++;
+  if(logCount === 1){ logEl.innerHTML = ''; }
+  const entry = document.createElement('div');
+  entry.className = 'log-entry ' + (tone || '');
+  const time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  entry.innerHTML = `<span class="t">TRIAL ${logCount} · ${time}</span>${text}`;
+  logEl.appendChild(entry);
+}
+
+function reactionKey(a,b){ return [a,b].sort().join('+'); }
+
+combineBtn.addEventListener('click', ()=>{
+  if(selected.length !== 2 || reacting) return;
+  reacting = true;
+  combineBtn.disabled = true;
+
+  const [a,b] = selected;
+  const key = reactionKey(a,b);
+  const rxn = REACTIONS[key];
+
+  beakerOuter.classList.add('shake');
+  setTimeout(()=> beakerOuter.classList.remove('shake'), 400);
+
+  liquid.style.height = '62%';
+
+  if(rxn){
+    liquid.style.background = rxn.color;
+    readoutStatus.textContent = rxn.status;
+
+    if(rxn.type === 'fizz'){
+      spawnBubbles(14);
+    } else if(rxn.type === 'foam'){
+      spawnBubbles(10);
+      setTimeout(()=> spawnFoam(18), 300);
+    } else if(rxn.type === 'precipitate'){
+      setTimeout(()=>{ sediment.style.height = '16%'; sediment.style.background = rxn.sediment; }, 500);
+    }
+
+    setTimeout(()=>{
+      addLog(`<strong>${nameOf(a)} + ${nameOf(b)}:</strong> ${rxn.log}`, rxn.tone);
+    }, 550);
+
+  } else {
+    const blended = blendColors(
+      REAGENTS.find(r=>r.id===a).color,
+      REAGENTS.find(r=>r.id===b).color
+    );
+    liquid.style.background = blended;
+    readoutStatus.textContent = 'NO REACTION';
+    setTimeout(()=>{
+      addLog(`<strong>${nameOf(a)} + ${nameOf(b)}:</strong> No visible reaction — the mixture stays inert.`, 'calm');
+    }, 550);
+  }
+
+  setTimeout(()=>{ reacting = false; }, 900);
+});
+
+function blendColors(c1, c2){
+  const hex = c => [1,3,5].map(i=>parseInt(c.substr(i,2),16));
+  const [r1,g1,b1] = hex(c1);
+  const [r2,g2,b2] = hex(c2);
+  const mix = (x,y)=> Math.round((x+y)/2).toString(16).padStart(2,'0');
+  return `#${mix(r1,r2)}${mix(g1,g2)}${mix(b1,b2)}`;
+}
+
+resetBtn.addEventListener('click', ()=>{
+  if(reacting) return;
+  selected.forEach(id=>{
+    document.querySelector(`.reagent[data-id="${id}"]`)?.classList.remove('selected');
+  });
+  selected = [];
+  combineBtn.disabled = true;
+  liquid.style.height = '0%';
+  sediment.style.height = '0px';
+  readoutStatus.textContent = 'STANDING BY';
+  updateReadout();
+});
+
+renderShelf();
+renderSafety();
+</script>
+</body>
+</html>

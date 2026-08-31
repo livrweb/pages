@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Garyism: Hail the Snail</title>
+  <style>
+    body {
+      background-color: #101820;
+      color: #9FE2BF;
+      font-family: 'Courier New', Courier, monospace;
+      text-align: center;
+      padding: 20px;
+      margin: 0;
+    }
+    h1 {
+      color: #FF69B4;
+      font-size: 2.5em;
+    }
+    .gary {
+      width: 70%; /* Make image responsive */
+      max-width: 250px; /* Max size for larger screens */
+      height: auto;
+      margin: 20px;
+    }
+    button {
+      background: #FF69B4;
+      color: #101820;
+      border: none;
+      padding: 20px 40px;
+      margin: 15px;
+      font-size: 1.2em;
+      cursor: pointer;
+      border-radius: 10px;
+      width: 80%; /* Full width on smaller devices */
+      max-width: 300px; /* Max width for larger screens */
+    }
+    #chant {
+      font-style: italic;
+      color: #bada55;
+      margin-top: 10px;
+      font-size: 1.2em;
+    }
+    h2, h3 {
+      font-size: 1.5em;
+    }
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 2em;
+      }
+      button {
+        padding: 15px 30px;
+      }
+      h2, h3 {
+        font-size: 1.2em;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🐌 Garyism: Hail the Snail 🐌</h1>
+  
+  <!-- Image of Gary the Snail -->
+  <img src="gary.png" alt="Gary the Snail" class="gary">
+  
+  <h2>Slime Points: <span id="slime">0</span></h2>
+  <h3>Cult Rank: <span id="rank">Slime Novice</span></h3>
+
+  <button onclick="gatherSlime()">Chant to Gary</button>
+  <button onclick="sacrifice()">Offer Sacrifice</button>
+
+  <div id="chant">"Meow... the sacred sound..."</div>
+
+  <script>
+    let slime = 0;
+    const chantPhrases = [
+      '"Meow blesses us."', 
+      '"Gary sees all."', 
+      '"The Trail of Slime is sacred."', 
+      '"Shell be praised!"',
+      '"Meow is the word of Gary."'
+    ];
+
+    const ranks = [
+      { name: "Slime Novice", threshold: 0 },
+      { name: "Snail Acolyte", threshold: 10 },
+      { name: "Shell Disciple", threshold: 50 },
+      { name: "High Mollusk", threshold: 200 },
+      { name: "The Chosen Gastropod", threshold: 500 }
+    ];
+
+    function gatherSlime() {
+      slime += 1;
+      updateDisplay();
+      randomChant();
+    }
+
+    function sacrifice() {
+      if (slime >= 10) {
+        slime -= 10;
+        slime += Math.floor(Math.random() * 25); // bonus slime
+        document.getElementById("chant").innerText = '"A worthy gift. Meow approves."';
+      } else {
+        document.getElementById("chant").innerText = '"Gary is displeased. Not enough slime."';
+      }
+      updateDisplay();
+    }
+
+    function randomChant() {
+      const chant = chantPhrases[Math.floor(Math.random() * chantPhrases.length)];
+      document.getElementById("chant").innerText = chant;
+    }
+
+    function updateDisplay() {
+      document.getElementById("slime").innerText = slime;
+      let currentRank = ranks[0].name;
+      for (let i = 0; i < ranks.length; i++) {
+        if (slime >= ranks[i].threshold) {
+          currentRank = ranks[i].name;
+        }
+      }
+      document.getElementById("rank").innerText = currentRank;
+    }
+  </script>
+
+</body>
+</html>
+

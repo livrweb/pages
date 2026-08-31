@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Minecraft Mobile - Home Screen</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        body { margin: 0; overflow: hidden; touch-action: none; font-family: 'Segoe UI', sans-serif; background: #000; }
+        
+        /* Home Screen Styling */
+        #home-screen {
+            position: absolute; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); /* Dark overlay */
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 100; transition: opacity 0.5s ease;
+        }
+        #home-title { color: white; font-size: 32px; font-weight: bold; margin-bottom: 20px; text-shadow: 2px 2px #000; }
+        #play-btn {
+            padding: 15px 50px; font-size: 24px; color: white; background: #4CAF50;
+            border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px #2e7d32;
+            transition: transform 0.1s;
+        }
+        #play-btn:active { transform: translateY(4px); box-shadow: none; }
+        #menu-picture { 
+            width: 150px; border: 3px solid white; border-radius: 10px; margin-bottom: 25px;
+            pointer-events: none;
+        }
+
+        /* In-game UI (Hidden at start) */
+        #game-ui { display: none; pointer-events: none; }
+        
+        #ui-top {
+            position: absolute; top: 20px; width: 100%; text-align: center;
+            color: white; font-size: 18px; text-shadow: 2px 2px #000; z-index: 30;
+        }
+        #joy-base {
+            position: absolute; width: 100px; height: 100px;
+            background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.4);
+            border-radius: 50%; display: none; pointer-events: none; z-index: 20;
+        }
+        #joy-stick {
+            position: absolute; width: 40px; height: 40px;
+            background: #fff; border-radius: 50%; top: 30px; left: 30px; opacity: 0.8;
+        }
+        #jump-btn {
+            position: absolute; bottom: 50px; right: 50px;
+            width: 80px; height: 80px; background: rgba(255,255,255,0.2);
+            border: 3px solid #fff; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-weight: bold; z-index: 20; pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HOME SCREEN -->
+    <div id="home-screen">
+        <div id="home-title">Touch me Daddy!</div>
+        <img id="menu-picture" src="pictur.png" alt="Game Preview">
+        <button id="play-btn">Woman!</button>
+    </div>
+
+    <!-- GAMEPLAY UI (Joystick/Jump) -->
+    <div id="game-ui">
+        <div id="ui-top">Find the Golden Waifu</div>
+        <div id="joy-base"><div id="joy-stick"></div></div>
+        <div id="jump-btn">JUMP</div>
+    </div>
+
+    <script type="importmap">
+        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // --- STATE ---
+        let gameActive = false;
+
+        // --- PLAY BUTTON CLICK ---
+        document.getElementById('play-btn').onclick = () => {
+            gameActive = true;
+            document.getElementById('home-screen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('home-screen').style.display = 'none';
+                document.getElementById('game-ui').style.display = 'block';
+            }, 500);
+        };
+
+        // --- THREE.JS SCENE ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // --- WORLD ---
+        const blocks = [];
+        const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+        const addP = (x, y, z, w, d, c=0x8B4513) => {
+            const mat = new THREE.MeshLambertMaterial({ color: c });
+            for(let i=0; i<w; i++) for(let j=0; j<d; j++) {
+                const m = new THREE.Mesh(boxGeo, mat);
+                m.position.set(x+i, y, z+j);
+                scene.add(m); blocks.push(m);
+            }
+        };
+        addP(-2, 0, -2, 5, 5, 0x55aa55); // Start
+        addP(-1, 0, -8, 3, 3);
+        addP(-1, 1, -14, 3, 3);
+        addP(-1, 2, -20, 3, 3, 0xFFD700); // Gold
+
+        scene.add(new THREE.AmbientLight(0x707070));
+        const sun = new THREE.DirectionalLight(0xffffff, 1);
+        sun.position.set(5, 15, 5);
+        scene.add(sun);
+
+        // --- PHYSICS & MOVEMENT ---
+        let vel = new THREE.Vector3();
+        let yaw = 0, pitch = 0;
+        let canJump = false;
+        let inputDir = new THREE.Vector2();
+        camera.position.set(0, 5, 0);
+
+        // --- TOUCH INPUTS ---
+        const joyBase = document.getElementById('joy-base');
+        const joyStick = document.getElementById('joy-stick');
+        let moveId = null, lookId = null;
+        let joyStart = new THREE.Vector2(), lastLook = new THREE.Vector2();
+
+        window.addEventListener('touchstart', (e) => {
+            if(!gameActive) return;
+            for (let t of e.changedTouches) {
+                if (t.clientX < window.innerWidth/2 && moveId === null) {
+                    moveId = t.identifier; joyStart.set(t.clientX, t.clientY);
+                    joyBase.style.display = 'block';
+                    joyBase.style.left = (t.clientX-50)+'px'; joyBase.style.top = (t.clientY-50)+'px';
+                } else if (t.clientX >= window.innerWidth/2 && lookId === null) {
+                    lookId = t.identifier; lastLook.set(t.clientX, t.clientY);
+                }
+            }
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if(!gameActive) return;
+            for (let t of e.changedTouches) {
+                if (t.identifier === moveId) {
+                    const dist = joyStart.distanceTo(new THREE.Vector2(t.clientX, t.clientY));
+                    const angle = Math.atan2(t.clientY - joyStart.y, t.clientX - joyStart.x);
+                    const moveDist = Math.min(dist, 40);
+                    joyStick.style.transform = `translate(${Math.cos(angle)*moveDist}px, ${Math.sin(angle)*moveDist}px)`;
+                    inputDir.set(Math.cos(angle)*(moveDist/40), Math.sin(angle)*(moveDist/40));
+                } else if (t.identifier === lookId) {
+                    yaw -= (t.clientX - lastLook.x) * 0.006;
+                    pitch = Math.max(-1.5, Math.min(1.5, pitch - (t.clientY - lastLook.y) * 0.006));
+                    lastLook.set(t.clientX, t.clientY);
+                }
+            }
+        });
+
+        window.addEventListener('touchend', (e) => {
+            for (let t of e.changedTouches) {
+                if (t.identifier === moveId) { moveId = null; joyBase.style.display = 'none'; inputDir.set(0, 0); }
+                if (t.identifier === lookId) lookId = null;
+            }
+        });
+
+        document.getElementById('jump-btn').addEventListener('touchstart', () => {
+            if (gameActive && canJump) { vel.y = 0.22; canJump = false; }
+        });
+
+        // --- ANIMATION LOOP ---
+        const raycaster = new THREE.Raycaster();
+        const down = new THREE.Vector3(0, -1, 0);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            camera.rotation.set(pitch, yaw, 0, 'YXZ');
+
+            if (gameActive) {
+                const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                forward.y = 0; forward.normalize();
+                const right = new THREE.Vector3().crossVectors(camera.up, forward).negate();
+
+                const targetVelX = (forward.x * -inputDir.y + right.x * inputDir.x) * 0.15;
+                const targetVelZ = (forward.z * -inputDir.y + right.z * inputDir.x) * 0.15;
+
+                vel.x += (targetVelX - vel.x) * 0.15;
+                vel.z += (targetVelZ - vel.z) * 0.15;
+                vel.y -= 0.01;
+                camera.position.add(vel);
+
+                raycaster.set(camera.position, down);
+                const hits = raycaster.intersectObjects(blocks);
+                if (hits.length > 0 && hits[0].distance < 1.6) {
+                    camera.position.y += (1.6 - hits[0].distance);
+                    vel.y = 0; canJump = true;
+                } else { canJump = false; }
+
+                if (camera.position.y < -10) camera.position.set(0, 5, 0);
+            }
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Depression Simulator</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --container-bg: #1e1e1e;
+            --text-color: #a0a0a0;
+            --text-highlight: #d0d0d0;
+            --btn-bg: #2a2a2a;
+            --btn-active: #3a3a3a;
+            --energy-color: #4a6fa5;
+            --mood-color: #6b5b95;
+            --error-color: #8b3a3a;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+            transition: filter 1s ease;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 450px;
+            background: var(--container-bg);
+            border-radius: 16px;
+            padding: 25px 20px;
+            box-sizing: border-box;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+        }
+
+        h1 { 
+            text-align: center; 
+            color: var(--text-highlight); 
+            font-size: 1.6rem; 
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .stats { 
+            margin-bottom: 25px; 
+            background: #181818;
+            padding: 15px;
+            border-radius: 12px;
+        }
+
+        .stat-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            color: var(--text-highlight);
+        }
+
+        .stat-bar { 
+            background: #111; 
+            height: 18px; 
+            border-radius: 9px; 
+            overflow: hidden; 
+            margin-bottom: 15px; 
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .stat-bar:last-child {
+            margin-bottom: 0;
+        }
+
+        .fill { 
+            height: 100%; 
+            transition: width 0.4s ease-out, background-color 0.4s ease; 
+        }
+
+        #energy-fill { background: var(--energy-color); width: 25%; }
+        #mood-fill { background: var(--mood-color); width: 15%; }
+
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            padding: 16px;
+            background: var(--btn-bg);
+            color: var(--text-highlight);
+            border: 1px solid #333;
+            border-radius: 12px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn:active { 
+            background: var(--btn-active); 
+            transform: scale(0.98);
+        }
+
+        .btn-subtext {
+            font-size: 0.75rem;
+            color: #777;
+            margin-top: 4px;
+        }
+
+        #log-container {
+            margin-top: 25px;
+            padding: 20px;
+            background: #151515;
+            border-left: 4px solid #333;
+            border-radius: 8px;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+        }
+
+        #log {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin: 0;
+            color: #b0b0b0;
+            transition: color 0.3s ease;
+        }
+
+        .day-counter {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <h1>Depression Simulator</h1>
+        
+        <div class="day-counter" id="day-display">Day 1 | 09:00 AM</div>
+
+        <div class="stats">
+            <div class="stat-label">
+                <span>Energy</span>
+                <span id="energy-text">25%</span>
+            </div>
+            <div class="stat-bar"><div id="energy-fill" class="fill"></div></div>
+            
+            <div class="stat-label">
+                <span>Mood</span>
+                <span id="mood-text">15%</span>
+            </div>
+            <div class="stat-bar"><div id="mood-fill" class="fill"></div></div>
+        </div>
+
+        <div class="actions">
+            <button class="btn" onclick="doTask('bed')">
+                Get out of bed
+                <span class="btn-subtext">Requires High Energy</span>
+            </button>
+            <button class="btn" onclick="doTask('shower')">
+                Take a shower
+                <span class="btn-subtext">Requires Medium Energy</span>
+            </button>
+            <button class="btn" onclick="doTask('text')">
+                Reply to friend's text
+                <span class="btn-subtext">Requires Low Energy</span>
+            </button>
+            <button class="btn" onclick="doTask('nothing')">
+                Stare at the ceiling
+                <span class="btn-subtext">Recovers Energy, Drains Mood</span>
+            </button>
+        </div>
+
+        <div id="log-container">
+            <p id="log">You wake up. The room feels heavy. You know you have things to do today, but the weight in your chest says otherwise.</p>
+        </div>
+    </div>
+
+    <script>
+        // Initial Game State
+        let energy = 25;
+        let mood = 15;
+        let days = 1;
+        let hours = 9;
+
+        // UI Elements
+        const energyFill = document.getElementById('energy-fill');
+        const moodFill = document.getElementById('mood-fill');
+        const energyText = document.getElementById('energy-text');
+        const moodText = document.getElementById('mood-text');
+        const log = document.getElementById('log');
+        const dayDisplay = document.getElementById('day-display');
+
+        function advanceTime(hoursPassed) {
+            hours += hoursPassed;
+            if (hours >= 24) {
+                hours -= 24;
+                days++;
+                // Slight reset on a new day, but still low
+                energy = Math.max(energy, 25);
+            }
+            
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const displayHours = hours % 12 || 12;
+            const formattedTime = `${displayHours.toString().padStart(2, '0')}:00 ${ampm}`;
+            
+            dayDisplay.innerText = `Day ${days} | ${formattedTime}`;
+        }
+
+        function updateUI() {
+            // Keep stats within 0-100 bounds
+            energy = Math.max(0, Math.min(100, energy));
+            mood = Math.max(0, Math.min(100, mood));
+
+            // Update Bars
+            energyFill.style.width = energy + '%';
+            moodFill.style.width = mood + '%';
+            
+            // Update Text
+            energyText.innerText = energy + '%';
+            moodText.innerText = mood + '%';
+
+            // Visual feedback: Screen becomes more grayscale as mood drops
+            let grayscale = Math.max(0, 100 - (mood * 1.5)); 
+            document.body.style.filter = `grayscale(${grayscale}%)`;
+        }
+
+        function logMessage(msg, isError = false) {
+            log.style.color = isError ? 'var(--error-color)' : '#b0b0b0';
+            log.innerText = msg;
+        }
+
+        function doTask(task) {
+            switch(task) {
+                case 'bed':
+                    if (energy >= 40) {
+                        energy -= 40;
+                        mood += 10;
+                        advanceTime(1);
+                        logMessage("You finally managed to roll out of bed. It took everything you had just to stand up.");
+                    } else {
+                        mood -= 5;
+                        advanceTime(2);
+                        logMessage("You try to command your legs to move, but they feel like lead. You stay in bed, feeling worse.", true);
+                    }
+                    break;
+                case 'shower':
+                    if (energy >= 30) {
+                        energy -= 30;
+                        mood += 15;
+                        advanceTime(1);
+                        logMessage("The hot water washes away a tiny bit of the numbness. Getting dressed afterward is exhausting, though.");
+                    } else {
+                        mood -= 5;
+                        advanceTime(1);
+                        logMessage("The thought of standing in the water, washing, and then drying off is completely overwhelming. You skip it.", true);
+                    }
+                    break;
+                case 'text':
+                    if (energy >= 15) {
+                        energy -= 15;
+                        mood += 5;
+                        advanceTime(1);
+                        logMessage("You send a brief 'I'm okay, just tired' text. It's a lie, but you feel a tiny bit less guilty for ignoring them.");
+                    } else {
+                        mood -= 10;
+                        advanceTime(1);
+                        logMessage("You stare at the unread message bubble. The guilt builds up in your throat, but you physically cannot bring yourself to type.", true);
+                    }
+                    break;
+                case 'nothing':
+                    energy += 10;
+                    mood -= 5;
+                    advanceTime(3);
+                    logMessage("You just lay there, staring into space. Hours pass in a blink. Your body rests, but the emptiness in your mind grows.");
+                    break;
+            }
+            updateUI();
+        }
+
+        // Initialize UI on load
+        updateUI();
+    </script>
+</body>
+</html>

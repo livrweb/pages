@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mobile HTML Tabletop Simulator</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #2e8b57;
+            font-family: sans-serif;
+            touch-action: none;
+        }
+        #table-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+        }
+        #table {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform-origin: 0 0;
+        }
+        #game-board {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 126vw;
+            height: 126vw;
+            max-width: 840px;
+            max-height: 840px;
+            background-color: #dcb38a;
+            background-image: url('Board.png');
+            background-size: cover;
+            background-position: center;
+            border: 6px solid #4a3018;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 10px 20px rgba(0,0,0,0.5);
+            z-index: 0;
+            pointer-events: none;
+            border-radius: 8px;
+        }
+        .token, .card, .money, .note {
+            position: absolute;
+            box-shadow: 2px 4px 6px rgba(0,0,0,0.3);
+            user-select: none;
+            transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+        }
+        .dragging {
+            transform: scale(1.05);
+            box-shadow: 4px 8px 12px rgba(0,0,0,0.5);
+        }
+        .selected {
+            outline: 3px solid #00ffff;
+            box-shadow: 0 0 15px #00ffff, 2px 4px 6px rgba(0,0,0,0.3) !important;
+        }
+        .token {
+            width: 80px;
+            height: 80px;
+            background-color: #fff;
+            border: 2px solid #333;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 24px;
+            cursor: grab;
+        }
+        .card {
+            width: 120px;
+            height: 160px;
+            background-color: #f8f8f8;
+            border: 2px solid #222;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        .card-header {
+            width: 100%;
+            height: 24px;
+            background-color: #e0e0e0;
+            cursor: grab;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 11px;
+            color: #333;
+            font-weight: bold;
+            border-bottom: 1px solid #ccc;
+        }
+        .card-title-input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-weight: bold;
+            font-size: 12px;
+            text-align: center;
+            padding: 4px 2px;
+            box-sizing: border-box;
+            outline: none;
+            border-bottom: 1px solid #eee;
+        }
+        .card textarea {
+            flex-grow: 1;
+            border: none;
+            background: transparent;
+            resize: none;
+            padding: 6px;
+            font-family: inherit;
+            font-size: 11px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .money {
+            width: 60px;
+            height: 60px;
+            background-color: #ffd700;
+            border: 2px dashed #b8860b;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 20px;
+            color: #333;
+            cursor: grab;
+        }
+        .note {
+            width: 150px;
+            height: 120px;
+            background-color: #fffacd;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .drag-handle {
+            width: 100%;
+            height: 24px;
+            background-color: #e0d998;
+            cursor: grab;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            color: #555;
+            border-bottom: 1px solid #ccc;
+        }
+        .note textarea {
+            flex-grow: 1;
+            border: none;
+            background: transparent;
+            resize: none;
+            padding: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+        }
+        #controls-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(30, 30, 30, 0.9);
+            padding: 10px 0;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+        }
+        .toolbar-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            width: 95%;
+            max-width: 800px;
+            margin-bottom: 6px;
+        }
+        .toolbar-row:last-child {
+            margin-bottom: 0;
+        }
+        button {
+            padding: 8px 10px;
+            font-size: 12px;
+            border: none;
+            border-radius: 5px;
+            background-color: #444;
+            color: #fff;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            white-space: nowrap;
+        }
+        button:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        .tool-btn {
+            background-color: #555;
+            font-weight: bold;
+        }
+        .tool-btn.active {
+            background-color: #2e8b57;
+            border: 2px solid #98fb98;
+            padding: 6px 8px;
+        }
+        #file-input {
+            display: none;
+        }
+        #selection-box {
+            position: absolute;
+            border: 2px dashed #00ffff;
+            background-color: rgba(0, 255, 255, 0.1);
+            z-index: 9999;
+            display: none;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls-wrapper">
+        <div class="toolbar-row">
+            <button id="btn-move" class="tool-btn active" onclick="setTool('move')">Move</button>
+            <button id="btn-camera" class="tool-btn" onclick="setTool('camera')">Camera</button>
+            <button id="btn-write" class="tool-btn" onclick="setTool('write')">Write</button>
+            <button id="btn-delete" class="tool-btn" style="background-color: #b22222;" onclick="setTool('delete')">Delete</button>
+            <button onclick="undo()" style="background-color: #8a2be2;">Undo</button>
+            <button onclick="redo()" style="background-color: #8a2be2;">Redo</button>
+        </div>
+        <div class="toolbar-row">
+            <button onclick="zoomIn()">Zoom +</button>
+            <button onclick="zoomOut()">Zoom -</button>
+            <button onclick="resetCamera()">Reset Cam</button>
+            <button onclick="addToken()">+ Token</button>
+            <button onclick="addCard()">+ Card</button>
+            <button onclick="addMoney()">+ Money</button>
+            <button onclick="addNote()">+ Note</button>
+        </div>
+        <div class="toolbar-row">
+            <button onclick="triggerJsonImport()" style="background-color: #4682b4;">Import JSON</button>
+            <button onclick="exportBoard()" style="background-color: #cd853f;">Export JSON</button>
+            <input type="file" id="file-input" accept=".json" onchange="importJsonCards(event)" />
+        </div>
+    </div>
+    
+    <div id="table-container">
+        <div id="table">
+            <div id="game-board"></div>
+        </div>
+        <div id="selection-box"></div>
+    </div>
+
+    <script>
+        const table = document.getElementById('table');
+        const container = document.getElementById('table-container');
+        const selectionBox = document.getElementById('selection-box');
+        
+        let highestZIndex = 10;
+        let activeElement = null;
+        let currentScale = 1;
+        let tableX = 0;
+        let tableY = 0;
+        
+        let isPanningCam = false;
+        let panOffsetX = 0;
+        let panOffsetY = 0;
+        
+        let isSelecting = false;
+        let selStartX = 0;
+        let selStartY = 0;
+        
+        let initialPinchDistance = null;
+        let currentTool = 'move';
+        
+        let selectedItems = [];
+        let dragData = [];
+        let mouseStartX = 0;
+        let mouseStartY = 0;
+
+        let boardHistory = [];
+        let historyIndex = -1;
+
+        function getBoardState() {
+            const data = [];
+            document.querySelectorAll('.card').forEach(el => {
+                data.push({
+                    objType: 'card',
+                    x: parseFloat(el.style.left) || 0,
+                    y: parseFloat(el.style.top) || 0,
+                    title: el.querySelector('.card-title-input').value,
+                    text: el.querySelector('textarea').value,
+                    color: el.querySelector('.card-header').style.backgroundColor
+                });
+            });
+            document.querySelectorAll('.token').forEach(el => {
+                data.push({
+                    objType: 'token',
+                    x: parseFloat(el.style.left) || 0,
+                    y: parseFloat(el.style.top) || 0,
+                    label: el.textContent,
+                    bg: el.style.backgroundColor
+                });
+            });
+            document.querySelectorAll('.money').forEach(el => {
+                data.push({
+                    objType: 'money',
+                    x: parseFloat(el.style.left) || 0,
+                    y: parseFloat(el.style.top) || 0,
+                    valText: el.textContent
+                });
+            });
+            document.querySelectorAll('.note').forEach(el => {
+                data.push({
+                    objType: 'note',
+                    x: parseFloat(el.style.left) || 0,
+                    y: parseFloat(el.style.top) || 0,
+                    text: el.querySelector('textarea').value
+                });
+            });
+            return data;
+        }
+
+        function saveState() {
+            boardHistory = boardHistory.slice(0, historyIndex + 1);
+            boardHistory.push(getBoardState());
+            historyIndex++;
+        }
+
+        function clearBoard() {
+            document.querySelectorAll('.object-element').forEach(el => el.remove());
+        }
+
+        function loadState(data, keepHistory = false) {
+            clearBoard();
+            data.forEach(item => {
+                let itemX = item.x !== undefined ? parseFloat(item.x) : null;
+                let itemY = item.y !== undefined ? parseFloat(item.y) : null;
+                if (item.objType === 'token') {
+                    addToken(itemX, itemY, item.label, item.bg, false);
+                } else if (item.objType === 'money') {
+                    addMoney(itemX, itemY, item.valText, false);
+                } else if (item.objType === 'note') {
+                    addNote(itemX, itemY, item.text, false);
+                } else {
+                    createCardElement(item.title || item.name || '', item.text || item.description || '', item.color || '#e0e0e0', itemX, itemY, false);
+                }
+            });
+            if (!keepHistory) {
+                saveState();
+            }
+        }
+
+        function undo() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                loadState(boardHistory[historyIndex], true);
+            }
+        }
+
+        function redo() {
+            if (historyIndex < boardHistory.length - 1) {
+                historyIndex++;
+                loadState(boardHistory[historyIndex], true);
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'z') {
+                e.preventDefault();
+                undo();
+            } else if (e.ctrlKey && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
+                e.preventDefault();
+                redo();
+            }
+        });
+
+        function setTool(tool) {
+            currentTool = tool;
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn-' + tool).classList.add('active');
+        }
+
+        function updateTransform() {
+            table.style.transform = `translate(${tableX}px, ${tableY}px) scale(${currentScale})`;
+        }
+
+        function zoomIn() {
+            currentScale = Math.min(currentScale + 0.15, 2.5);
+            updateTransform();
+        }
+
+        function zoomOut() {
+            currentScale = Math.max(currentScale - 0.15, 0.4);
+            updateTransform();
+        }
+
+        function resetCamera() {
+            currentScale = 1;
+            tableX = 0;
+            tableY = 0;
+            updateTransform();
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected', 'dragging'));
+            selectedItems = [];
+        }
+
+        function getPinchDistance(e) {
+            return Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+        }
+
+        container.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.object-element, button, .card-title-input, textarea, .drag-handle')) return;
+            if (currentTool === 'camera') {
+                isPanningCam = true;
+                panOffsetX = e.clientX - tableX;
+                panOffsetY = e.clientY - tableY;
+            } else if (currentTool === 'move') {
+                isSelecting = true;
+                selStartX = e.clientX;
+                selStartY = e.clientY;
+                selectionBox.style.left = selStartX + 'px';
+                selectionBox.style.top = selStartY + 'px';
+                selectionBox.style.width = '0px';
+                selectionBox.style.height = '0px';
+                selectionBox.style.display = 'block';
+                clearSelection();
+            }
+        });
+
+        container.addEventListener('mousemove', (e) => {
+            if (isPanningCam) {
+                tableX = e.clientX - panOffsetX;
+                tableY = e.clientY - panOffsetY;
+                updateTransform();
+            } else if (isSelecting) {
+                let currentX = e.clientX;
+                let currentY = e.clientY;
+                let left = Math.min(selStartX, currentX);
+                let top = Math.min(selStartY, currentY);
+                let width = Math.abs(selStartX - currentX);
+                let height = Math.abs(selStartY - currentY);
+                selectionBox.style.left = left + 'px';
+                selectionBox.style.top = top + 'px';
+                selectionBox.style.width = width + 'px';
+                selectionBox.style.height = height + 'px';
+                let selRect = selectionBox.getBoundingClientRect();
+                document.querySelectorAll('.object-element').forEach(el => {
+                    let rect = el.getBoundingClientRect();
+                    if (rect.left < selRect.right && rect.right > selRect.left && rect.top < selRect.bottom && rect.bottom > selRect.top) {
+                        el.classList.add('selected');
+                    } else {
+                        el.classList.remove('selected');
+                    }
+                });
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            isPanningCam = false;
+            if (isSelecting) {
+                isSelecting = false;
+                selectionBox.style.display = 'none';
+            }
+        });
+
+        container.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                initialPinchDistance = getPinchDistance(e);
+            } else if (e.touches.length === 1 && !e.target.closest('.object-element, button, .card-title-input, textarea, .drag-handle')) {
+                if (currentTool === 'camera') {
+                    isPanningCam = true;
+                    panOffsetX = e.touches[0].clientX - tableX;
+                    panOffsetY = e.touches[0].clientY - tableY;
+                } else if (currentTool === 'move') {
+                    isSelecting = true;
+                    selStartX = e.touches[0].clientX;
+                    selStartY = e.touches[0].clientY;
+                    selectionBox.style.left = selStartX + 'px';
+                    selectionBox.style.top = selStartY + 'px';
+                    selectionBox.style.width = '0px';
+                    selectionBox.style.height = '0px';
+                    selectionBox.style.display = 'block';
+                    clearSelection();
+                }
+            }
+        }, { passive: false });
+
+        container.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && initialPinchDistance) {
+                e.preventDefault();
+                const dist = getPinchDistance(e);
+                const factor = dist / initialPinchDistance;
+                currentScale = Math.min(Math.max(currentScale * (factor > 1 ? 1.02 : 0.98), 0.4), 2.5);
+                updateTransform();
+                initialPinchDistance = dist;
+            } else if (isPanningCam && e.touches.length === 1) {
+                e.preventDefault();
+                tableX = e.touches[0].clientX - panOffsetX;
+                tableY = e.touches[0].clientY - panOffsetY;
+                updateTransform();
+            } else if (isSelecting && e.touches.length === 1) {
+                e.preventDefault();
+                let currentX = e.touches[0].clientX;
+                let currentY = e.touches[0].clientY;
+                let left = Math.min(selStartX, currentX);
+                let top = Math.min(selStartY, currentY);
+                let width = Math.abs(selStartX - currentX);
+                let height = Math.abs(selStartY - currentY);
+                selectionBox.style.left = left + 'px';
+                selectionBox.style.top = top + 'px';
+                selectionBox.style.width = width + 'px';
+                selectionBox.style.height = height + 'px';
+                let selRect = selectionBox.getBoundingClientRect();
+                document.querySelectorAll('.object-element').forEach(el => {
+                    let rect = el.getBoundingClientRect();
+                    if (rect.left < selRect.right && rect.right > selRect.left && rect.top < selRect.bottom && rect.bottom > selRect.top) {
+                        el.classList.add('selected');
+                    } else {
+                        el.classList.remove('selected');
+                    }
+                });
+            }
+        }, { passive: false });
+
+        container.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) {
+                initialPinchDistance = null;
+            }
+            isPanningCam = false;
+            if (isSelecting) {
+                isSelecting = false;
+                selectionBox.style.display = 'none';
+            }
+        });
+
+        function makeDraggable(containerElement, handle = null) {
+            const dragTarget = handle || containerElement;
+            dragTarget.addEventListener('touchstart', (e) => dragStart(e, containerElement), { passive: false });
+            dragTarget.addEventListener('mousedown', (e) => dragStart(e, containerElement));
+        }
+
+        function dragStart(e, containerElement) {
+            if (e.touches && e.touches.length > 1) return;
+            if (currentTool === 'delete') {
+                containerElement.remove();
+                saveState();
+                return;
+            }
+            if (currentTool === 'write' || currentTool === 'camera') {
+                return;
+            }
+            if (e.type === 'touchstart' && e.cancelable) {
+                e.preventDefault();
+            }
+            const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            if (!containerElement.classList.contains('selected')) {
+                clearSelection();
+                containerElement.classList.add('selected');
+            }
+            selectedItems = Array.from(document.querySelectorAll('.selected'));
+            activeElement = containerElement;
+            dragData = selectedItems.map(el => {
+                highestZIndex++;
+                el.style.zIndex = highestZIndex;
+                el.classList.add('dragging');
+                return {
+                    el: el,
+                    startX: parseFloat(el.style.left) || 0,
+                    startY: parseFloat(el.style.top) || 0
+                };
+            });
+            mouseStartX = clientX;
+            mouseStartY = clientY;
+            document.addEventListener('mousemove', dragMove);
+            document.addEventListener('mouseup', dragEnd);
+            document.addEventListener('touchmove', dragMove, { passive: false });
+            document.addEventListener('touchend', dragEnd);
+        }
+
+        function dragMove(e) {
+            if (!activeElement) return;
+            if (e.touches && e.touches.length > 1) return;
+            if (e.cancelable) e.preventDefault();
+            const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            let dx = (clientX - mouseStartX) / currentScale;
+            let dy = (clientY - mouseStartY) / currentScale;
+            dragData.forEach(item => {
+                item.el.style.left = (item.startX + dx) + 'px';
+                item.el.style.top = (item.startY + dy) + 'px';
+            });
+        }
+
+        function dragEnd(e) {
+            if (!activeElement) return;
+            let moved = false;
+            selectedItems.forEach(el => el.classList.remove('dragging'));
+            dragData.forEach(item => {
+                let currentX = parseFloat(item.el.style.left) || 0;
+                let currentY = parseFloat(item.el.style.top) || 0;
+                if (currentX !== item.startX || currentY !== item.startY) {
+                    moved = true;
+                }
+            });
+            activeElement = null;
+            dragData = [];
+            document.removeEventListener('mousemove', dragMove);
+            document.removeEventListener('mouseup', dragEnd);
+            document.removeEventListener('touchmove', dragMove);
+            document.removeEventListener('touchend', dragEnd);
+            if (moved) saveState();
+        }
+
+        function getCenterCoords(width, height) {
+            const randomOffset = Math.floor(Math.random() * 40) - 20;
+            return {
+                x: (window.innerWidth / 2 - width / 2) / currentScale - (tableX / currentScale) + randomOffset,
+                y: (window.innerHeight / 2 - height / 2) / currentScale - (tableY / currentScale) + randomOffset
+            };
+        }
+
+        function addToken(x = null, y = null, label = null, bg = null, record = true) {
+            const colors = ['#ff6b6b', '#4ecdc4', '#feca57', '#a29bfe', '#fd79a8'];
+            const token = document.createElement('div');
+            token.className = 'token draggable object-element';
+            const pos = (x !== null && y !== null) ? {x, y} : getCenterCoords(80, 80);
+            token.style.left = pos.x + 'px';
+            token.style.top = pos.y + 'px';
+            token.style.backgroundColor = bg || colors[Math.floor(Math.random() * colors.length)];
+            highestZIndex++;
+            token.style.zIndex = highestZIndex;
+            token.style.color = 'white';
+            token.textContent = label || ('P' + (document.querySelectorAll('.token').length + 1));
+            makeDraggable(token);
+            table.appendChild(token);
+            if (record) saveState();
+        }
+
+        function createCardElement(titleText = '', bodyText = '', color = '#e0e0e0', x = null, y = null, record = true) {
+            const card = document.createElement('div');
+            card.className = 'card object-element';
+            const pos = (x !== null && y !== null) ? {x, y} : getCenterCoords(120, 160);
+            card.style.left = pos.x + 'px';
+            card.style.top = pos.y + 'px';
+            highestZIndex++;
+            card.style.zIndex = highestZIndex;
+            const header = document.createElement('div');
+            header.className = 'card-header';
+            header.textContent = '≡ Drag ≡';
+            if (color) header.style.backgroundColor = color;
+            const titleInput = document.createElement('input');
+            titleInput.className = 'card-title-input';
+            titleInput.value = titleText || ('Card ' + (document.querySelectorAll('.card').length + 1));
+            titleInput.addEventListener('change', () => saveState());
+            const textarea = document.createElement('textarea');
+            textarea.placeholder = 'Card text...';
+            textarea.value = bodyText;
+            textarea.addEventListener('change', () => saveState());
+            card.appendChild(header);
+            card.appendChild(titleInput);
+            card.appendChild(textarea);
+            makeDraggable(card, header);
+            table.appendChild(card);
+            if (record) saveState();
+        }
+
+        function addCard(record = true) {
+            createCardElement('', '', '#e0e0e0', null, null, record);
+        }
+
+        function addMoney(x = null, y = null, valText = null, record = true) {
+            const values = [50, 100, 200, 500, 1000];
+            const money = document.createElement('div');
+            money.className = 'money draggable object-element';
+            const pos = (x !== null && y !== null) ? {x, y} : getCenterCoords(60, 60);
+            money.style.left = pos.x + 'px';
+            money.style.top = pos.y + 'px';
+            highestZIndex++;
+            money.style.zIndex = highestZIndex;
+            money.textContent = valText || ('$' + values[Math.floor(Math.random() * values.length)]);
+            makeDraggable(money);
+            table.appendChild(money);
+            if (record) saveState();
+        }
+
+        function addNote(x = null, y = null, text = '', record = true) {
+            const note = document.createElement('div');
+            note.className = 'note object-element';
+            const pos = (x !== null && y !== null) ? {x, y} : getCenterCoords(150, 120);
+            note.style.left = pos.x + 'px';
+            note.style.top = pos.y + 'px';
+            highestZIndex++;
+            note.style.zIndex = highestZIndex;
+            const handle = document.createElement('div');
+            handle.className = 'drag-handle';
+            handle.textContent = '≡ Drag Me ≡';
+            const textarea = document.createElement('textarea');
+            textarea.placeholder = 'Type notes here...';
+            textarea.value = text;
+            textarea.addEventListener('change', () => saveState());
+            note.appendChild(handle);
+            note.appendChild(textarea);
+            makeDraggable(note, handle);
+            table.appendChild(note);
+            if (record) saveState();
+        }
+
+        function exportBoard() {
+            const exportData = {
+                globalOffsetX: 0,
+                globalOffsetY: 0,
+                initialCameraX: tableX,
+                initialCameraY: tableY,
+                initialZoom: currentScale,
+                items: getBoardState()
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", "tabletop_save.json");
+            dlAnchorElem.click();
+        }
+
+        function triggerJsonImport() {
+            document.getElementById('file-input').click();
+        }
+
+        function importJsonCards(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    let itemsList = [];
+                    let gOffsetX = 0;
+                    let gOffsetY = 0;
+                    if (Array.isArray(data)) {
+                        itemsList = data;
+                    } else if (data.items && Array.isArray(data.items)) {
+                        itemsList = data.items;
+                        gOffsetX = parseFloat(data.globalOffsetX) || 0;
+                        gOffsetY = parseFloat(data.globalOffsetY) || 0;
+                        if (data.initialCameraX !== undefined) tableX = parseFloat(data.initialCameraX);
+                        if (data.initialCameraY !== undefined) tableY = parseFloat(data.initialCameraY);
+                        if (data.initialZoom !== undefined) currentScale = parseFloat(data.initialZoom);
+                        updateTransform();
+                    }
+                    const adjustedItems = itemsList.map(item => {
+                        let newItem = { ...item };
+                        if (newItem.x !== undefined) newItem.x = parseFloat(newItem.x) + gOffsetX;
+                        if (newItem.y !== undefined) newItem.y = parseFloat(newItem.y) + gOffsetY;
+                        return newItem;
+                    });
+                    loadState(adjustedItems, false);
+                } catch (err) {
+                    alert('Invalid JSON file format.');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        saveState();
+    </script>
+</body>
+</html>
+

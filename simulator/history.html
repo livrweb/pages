@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Human History Simulator: Age of Chaos</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --surface: #1e1e1e;
+            --text: #e0e0e0;
+            --accent: #bb86fc;
+            --danger: #cf6679;
+            --dlc: #03dac6;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        header {
+            text-align: center;
+            padding: 15px 10px;
+            background-color: var(--surface);
+            font-size: 1.2rem;
+            font-weight: bold;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 15px;
+            gap: 15px;
+        }
+        #map {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 4px;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background-color: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+        }
+        .cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+            text-align: center;
+            transition: background-color 0.8s ease, transform 0.3s ease;
+            word-break: break-word;
+            padding: 2px;
+        }
+        @keyframes warPulse {
+            0% { filter: brightness(1); transform: scale(1); box-shadow: inset 0 0 0px red; }
+            50% { filter: brightness(1.5); transform: scale(0.95); box-shadow: inset 0 0 20px red; }
+            100% { filter: brightness(1); transform: scale(1); box-shadow: inset 0 0 0px red; }
+        }
+        .war-flash {
+            animation: warPulse 0.4s infinite;
+            z-index: 5;
+        }
+        @keyframes rebelPulse {
+            0% { filter: brightness(1); transform: scale(1); box-shadow: inset 0 0 0px white; }
+            50% { filter: brightness(1.8); transform: scale(1.1); box-shadow: inset 0 0 20px white; }
+            100% { filter: brightness(1); transform: scale(1); box-shadow: inset 0 0 0px white; }
+        }
+        .rebel-flash {
+            animation: rebelPulse 0.4s infinite;
+            z-index: 6;
+        }
+        @keyframes doomPulse {
+            0% { filter: grayscale(0); transform: translate(0, 0); }
+            25% { transform: translate(-3px, 3px); }
+            50% { filter: grayscale(1) brightness(0.5); transform: translate(3px, -3px); }
+            75% { transform: translate(-3px, -3px); }
+            100% { filter: grayscale(0); transform: translate(0, 0); }
+        }
+        .doom-flash {
+            animation: doomPulse 0.1s infinite;
+            z-index: 7;
+        }
+        .controls-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            background-color: var(--surface);
+            color: var(--accent);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            touch-action: manipulation;
+        }
+        button:active {
+            transform: scale(0.96);
+            background-color: #2a2a2a;
+        }
+        button.danger {
+            color: var(--danger);
+        }
+        button.dlc {
+            color: var(--dlc);
+            background-color: #1a2929;
+        }
+        .log-container {
+            flex: 1;
+            background-color: var(--surface);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .log-header {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+        #log {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-right: 5px;
+        }
+        .log-entry {
+            font-size: 0.9rem;
+            line-height: 1.4;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #333;
+            animation: slideIn 0.3s ease-out;
+        }
+        .log-entry.world-war {
+            color: var(--danger);
+            font-weight: bold;
+        }
+        .log-entry.victory {
+            color: var(--accent);
+        }
+        .log-entry.dlc-event {
+            color: var(--dlc);
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #121212; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <header>History Simulator: Age of Chaos DLC</header>
+    <div class="container">
+        <div id="map"></div>
+        <div class="controls-group">
+            <div class="controls">
+                <button onclick="startWar()">⚔️ Random War</button>
+                <button class="danger" onclick="startWorldWar()">🌍 World War</button>
+            </div>
+            <div class="controls">
+                <button class="dlc" onclick="triggerRebellion()">✊ Rebellion</button>
+                <button class="dlc" onclick="triggerCatastrophe()">☄️ Catastrophe</button>
+            </div>
+        </div>
+        <div class="log-container">
+            <div class="log-header">
+                <span>Event History</span>
+                <span id="reset-btn" style="color:var(--accent); cursor:pointer;" onclick="init()">↺ Reset World</span>
+            </div>
+            <div id="log"></div>
+        </div>
+    </div>
+    <script>
+        let year = 1;
+        let cells = [];
+        let countries = {};
+        let isSimulating = false;
+        let rebelCounter = 1;
+        const countryNames = ["Aethelgard", "Belerion", "Cyrillia", "Drakovia", "Elandria", "Fenris", "Gondal", "Helvetia"];
+        const palette = ["#FF595E", "#FFCA3A", "#8AC926", "#1982C4", "#6A4C93", "#F15BB5", "#00F5D4", "#FB5607"];
+        const mapEl = document.getElementById('map');
+        const logEl = document.getElementById('log');
+
+        function init() {
+            year = 1;
+            rebelCounter = 1;
+            countries = {};
+            logEl.innerHTML = '';
+            isSimulating = false;
+            countryNames.forEach((name, i) => {
+                countries[name] = { name: name, color: palette[i], cells: 0, alive: true, wastelands: false };
+            });
+            countries["Wasteland"] = { name: "Wasteland", color: "#222222", cells: 0, alive: true, wastelands: true };
+            mapEl.innerHTML = '';
+            cells = [];
+            let assignments = [];
+            countryNames.forEach(name => {
+                assignments.push(name);
+                assignments.push(name);
+            });
+            assignments.sort(() => Math.random() - 0.5);
+            assignments.forEach(ownerName => {
+                let cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.style.backgroundColor = countries[ownerName].color;
+                cell.innerText = ownerName;
+                cell.dataset.owner = ownerName;
+                mapEl.appendChild(cell);
+                cells.push(cell);
+                countries[ownerName].cells++;
+            });
+            logEvent("Year 1: The dawn of a new era.", "");
+        }
+
+        function logEvent(text, type = "") {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerText = text;
+            logEl.prepend(entry);
+        }
+
+        function getAliveCountries() {
+            return Object.values(countries).filter(c => c.alive && !c.wastelands);
+        }
+
+        function checkDeath(countryName) {
+            if(countries[countryName].cells <= 0) {
+                countries[countryName].alive = false;
+            }
+        }
+
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        function startWar() {
+            if (isSimulating) return;
+            let alive = getAliveCountries();
+            if(alive.length < 2) {
+                if(alive.length === 1) {
+                    logEvent(`Year ${year}: ${alive[0].name} holds absolute control.`, "victory");
+                }
+                return;
+            }
+            isSimulating = true;
+            alive.sort(() => Math.random() - 0.5);
+            let a = alive[0];
+            let b = alive[1];
+            year += Math.floor(Math.random() * 5) + 1;
+            logEvent(`Year ${year}: War breaks out between ${a.name} and ${b.name}!`, "");
+            cells.forEach(c => {
+                if(c.dataset.owner === a.name || c.dataset.owner === b.name) {
+                    c.classList.add('war-flash');
+                }
+            });
+            setTimeout(() => {
+                cells.forEach(c => c.classList.remove('war-flash'));
+                let winner = Math.random() > 0.5 ? a : b;
+                let loser = winner === a ? b : a;
+                logEvent(`Year ${year + 1}: ${winner.name} defeats ${loser.name}!`, "victory");
+                cells.forEach(c => {
+                    if(c.dataset.owner === loser.name) {
+                        c.dataset.owner = winner.name;
+                        c.style.backgroundColor = winner.color;
+                        c.innerText = winner.name;
+                        winner.cells++;
+                        loser.cells--;
+                    }
+                });
+                checkDeath(loser.name);
+                year += 1;
+                isSimulating = false;
+                checkWinCondition();
+            }, 1200);
+        }
+
+        function startWorldWar() {
+            if (isSimulating) return;
+            let alive = getAliveCountries();
+            if(alive.length < 3) return;
+            isSimulating = true;
+            year += Math.floor(Math.random() * 3) + 1;
+            logEvent(`Year ${year}: ⚠️ A WORLD WAR HAS COMMENCED!`, "world-war");
+            alive.sort(() => Math.random() - 0.5);
+            let mid = Math.floor(alive.length / 2);
+            let alliance1 = alive.slice(0, mid);
+            let alliance2 = alive.slice(mid);
+            let a1Names = alliance1.map(c => c.name).join(", ");
+            let a2Names = alliance2.map(c => c.name).join(", ");
+            logEvent(`The Coalition (${a1Names}) vs The Federation (${a2Names})!`, "");
+            cells.forEach(c => {
+                if(!countries[c.dataset.owner].wastelands) {
+                    c.classList.add('war-flash');
+                }
+            });
+            setTimeout(() => {
+                cells.forEach(c => c.classList.remove('war-flash'));
+                let winnerAlliance = Math.random() > 0.5 ? alliance1 : alliance2;
+                let loserAlliance = winnerAlliance === alliance1 ? alliance2 : alliance1;
+                let winnerName = winnerAlliance === alliance1 ? "The Coalition" : "The Federation";
+                logEvent(`Year ${year + 4}: ${winnerName} wins the World War!`, "victory");
+                loserAlliance.forEach(loser => {
+                    cells.forEach(c => {
+                        if(c.dataset.owner === loser.name) {
+                            let randomWinner = winnerAlliance[Math.floor(Math.random() * winnerAlliance.length)];
+                            c.dataset.owner = randomWinner.name;
+                            c.style.backgroundColor = randomWinner.color;
+                            c.innerText = randomWinner.name;
+                            randomWinner.cells++;
+                            loser.cells--;
+                        }
+                    });
+                    checkDeath(loser.name);
+                });
+                year += 4;
+                isSimulating = false;
+                checkWinCondition();
+            }, 2000);
+        }
+
+        function triggerRebellion() {
+            if (isSimulating) return;
+            let alive = getAliveCountries();
+            let largeCountries = alive.filter(c => c.cells > 1);
+            if (largeCountries.length === 0) return;
+            isSimulating = true;
+            largeCountries.sort(() => Math.random() - 0.5);
+            let targetCountry = largeCountries[0];
+            let targetCells = cells.filter(c => c.dataset.owner === targetCountry.name);
+            let rebelCell = targetCells[Math.floor(Math.random() * targetCells.length)];
+            let rebelName = "Rebel " + rebelCounter;
+            rebelCounter++;
+            countries[rebelName] = { name: rebelName, color: getRandomColor(), cells: 0, alive: true, wastelands: false };
+            year += 1;
+            logEvent(`Year ${year}: ✊ Citizens in ${targetCountry.name} rebel! ${rebelName} is formed!`, "dlc-event");
+            rebelCell.classList.add('rebel-flash');
+            setTimeout(() => {
+                rebelCell.classList.remove('rebel-flash');
+                rebelCell.dataset.owner = rebelName;
+                rebelCell.style.backgroundColor = countries[rebelName].color;
+                rebelCell.innerText = rebelName;
+                countries[rebelName].cells++;
+                targetCountry.cells--;
+                isSimulating = false;
+            }, 1000);
+        }
+
+        function triggerCatastrophe() {
+            if (isSimulating) return;
+            let validCells = cells.filter(c => c.dataset.owner !== "Wasteland");
+            if (validCells.length === 0) return;
+            isSimulating = true;
+            let doomCell = validCells[Math.floor(Math.random() * validCells.length)];
+            let previousOwner = doomCell.dataset.owner;
+            year += 1;
+            logEvent(`Year ${year}: ☄️ Catastrophe strikes ${previousOwner}! The land is now a Wasteland.`, "dlc-event");
+            doomCell.classList.add('doom-flash');
+            setTimeout(() => {
+                doomCell.classList.remove('doom-flash');
+                doomCell.dataset.owner = "Wasteland";
+                doomCell.style.backgroundColor = countries["Wasteland"].color;
+                doomCell.innerText = "";
+                countries["Wasteland"].cells++;
+                countries[previousOwner].cells--;
+                checkDeath(previousOwner);
+                isSimulating = false;
+                checkWinCondition();
+            }, 1500);
+        }
+
+        function checkWinCondition() {
+            let alive = getAliveCountries();
+            let habitableCells = cells.filter(c => c.dataset.owner !== "Wasteland").length;
+            if (habitableCells === 0) {
+                logEvent(`Year ${year}: The world is dead. Only Wasteland remains.`, "world-war");
+            } else if (alive.length === 1 && habitableCells === cells.length) {
+                logEvent(`🏆 Year ${year}: ${alive[0].name} has achieved World Domination!`, "world-war");
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
+

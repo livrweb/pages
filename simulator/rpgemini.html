@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Mobile Dual-Stick RPG</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      margin: 0;
+      padding: 0;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0b0e14;
+      font-family: monospace;
+    }
+    #gameCanvas {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      image-rendering: pixelated;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Canvas Resizing
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      ctx.imageSmoothingEnabled = false;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // ==========================================
+    // PROCEDURAL SQUARE TEXTURES (32x32)
+    // ==========================================
+    const TEX_SIZE = 32;
+
+    function createSquareTexture(drawFn) {
+      const tCanvas = document.createElement('canvas');
+      tCanvas.width = TEX_SIZE;
+      tCanvas.height = TEX_SIZE;
+      const tCtx = tCanvas.getContext('2d');
+      tCtx.imageSmoothingEnabled = false;
+      drawFn(tCtx);
+      return tCanvas;
+    }
+
+    // Grass Tile
+    const texGrass = createSquareTexture(c => {
+      c.fillStyle = '#2d5e2e';
+      c.fillRect(0, 0, 32, 32);
+      c.fillStyle = '#3b7a3c';
+      for (let i = 0; i < 20; i++) {
+        let x = (i * 7) % 32, y = (i * 13) % 32;
+        c.fillRect(x, y, 3, 3);
+      }
+      c.fillStyle = '#1e3f1f';
+      for (let i = 0; i < 15; i++) {
+        let x = (i * 11) % 32, y = (i * 17) % 32;
+        c.fillRect(x, y, 2, 2);
+      }
+    });
+
+    // Wall Tile
+    const texWall = createSquareTexture(c => {
+      c.fillStyle = '#3a3d4d';
+      c.fillRect(0, 0, 32, 32);
+      c.fillStyle = '#5c607a';
+      c.fillRect(2, 2, 12, 12);
+      c.fillRect(18, 2, 12, 12);
+      c.fillRect(2, 18, 28, 12);
+      c.fillStyle = '#1c1e26';
+      c.fillRect(0, 15, 32, 2);
+      c.fillRect(15, 0, 2, 15);
+      c.fillRect(0, 0, 32, 2);
+      c.fillRect(0, 0, 2, 32);
+    });
+
+    // Hero Sprite (Squished in 32x32 square)
+    const texHero = createSquareTexture(c => {
+      c.fillStyle = '#e5a323'; // Body/Armor
+      c.fillRect(6, 6, 20, 20);
+      c.fillStyle = '#ffcf75'; // Head
+      c.fillRect(8, 4, 16, 12);
+      c.fillStyle = '#1d212d'; // Eyes
+      c.fillRect(11, 8, 3, 4);
+      c.fillRect(18, 8, 3, 4);
+      c.fillStyle = '#b02e2e'; // Cape/Shield Accent
+      c.fillRect(4, 12, 4, 12);
+      c.fillRect(24, 12, 4, 12);
+    });
+
+    // Sword Texture (Squished 32x32 square frame)
+    const texSword = createSquareTexture(c => {
+      // Hilt
+      c.fillStyle = '#8b5a2b';
+      c.fillRect(14, 24, 4, 7);
+      // Guard
+      c.fillStyle = '#d4af37';
+      c.fillRect(8, 22, 16, 3);
+      // Blade
+      c.fillStyle = '#e0e6ed';
+      c.fillRect(13, 2, 6, 20);
+      c.fillStyle = '#ffffff';
+      c.fillRect(13, 2, 2, 20);
+    });
+
+    // Slime Enemy Texture
+    const texSlime = createSquareTexture(c => {
+      c.fillStyle = '#d93838';
+      c.fillRect(4, 8, 24, 20);
+      c.fillRect(8, 4, 16, 24);
+      c.fillStyle = '#ffffff';
+      c.fillRect(8, 10, 4, 6);
+      c.fillRect(20, 10, 4, 6);
+      c.fillStyle = '#000';
+      c.fillRect(10, 12, 2, 4);
+      c.fillRect(22, 12, 2, 4);
+    });
+
+    // ==========================================
+    // GAME WORLD & MAP
+    // ==========================================
+    const TILE_SIZE = 48; // Render size
+    const MAP_COLS = 30;
+    const MAP_ROWS = 30;
+    const map = [];
+
+    for (let r = 0; r < MAP_ROWS; r++) {
+      map[r] = [];
+      for (let c = 0; c < MAP_COLS; c++) {
+        if (r === 0 || r === MAP_ROWS - 1 || c === 0 || c === MAP_COLS - 1 || (r % 5 === 0 && c % 6 === 0)) {
+          map[r][c] = 1; // Wall
+        } else {
+          map[r][c] = 0; // Grass
+        }
+      }
+    }
+
+    // ==========================================
+    // ENTITIES & GAME STATE
+    // ==========================================
+    const player = {
+      x: 3 * TILE_SIZE,
+      y: 3 * TILE_SIZE,
+      radius: 18,
+      speed: 4,
+      hp: 100,
+      maxHp: 100,
+      kills: 0,
+      facingAngle: 0,
+      swordAngle: 0,
+      isAttacking: false,
+      swordArc: 0
+    };
+
+    const enemies = [];
+    function spawnEnemy() {
+      if (enemies.length >= 15) return;
+      let rx = Math.floor(Math.random() * (MAP_COLS - 2)) + 1;
+      let ry = Math.floor(Math.random() * (MAP_ROWS - 2)) + 1;
+      if (map[ry][rx] === 0) {
+        enemies.push({
+          x: rx * TILE_SIZE + TILE_SIZE / 2,
+          y: ry * TILE_SIZE + TILE_SIZE / 2,
+          radius: 16,
+          hp: 30,
+          speed: 1.8,
+          hitTimer: 0
+        });
+      }
+    }
+    setInterval(spawnEnemy, 1500);
+
+    const particles = [];
+    function addHitParticles(x, y, color) {
+      for (let i = 0; i < 8; i++) {
+        particles.push({
+          x, y,
+          vx: (Math.random() - 0.5) * 6,
+          vy: (Math.random() - 0.5) * 6,
+          life: 15,
+          color
+        });
+      }
+    }
+
+    // ==========================================
+    // DUAL MOBILE JOYSTICKS
+    // ==========================================
+    const moveStick = { id: null, active: false, startX: 0, startY: 0, currX: 0, currY: 0, dx: 0, dy: 0 };
+    const attackStick = { id: null, active: false, startX: 0, startY: 0, currX: 0, currY: 0, dx: 0, dy: 0 };
+
+    const JOY_RADIUS = 50;
+
+    function handleTouchStart(e) {
+      e.preventDefault();
+      const halfWidth = window.innerWidth / 2;
+      for (let touch of e.changedTouches) {
+        if (touch.clientX < halfWidth && !moveStick.active) {
+          moveStick.id = touch.identifier;
+          moveStick.active = true;
+          moveStick.startX = moveStick.currX = touch.clientX;
+          moveStick.startY = moveStick.currY = touch.clientY;
+          moveStick.dx = 0;
+          moveStick.dy = 0;
+        } else if (touch.clientX >= halfWidth && !attackStick.active) {
+          attackStick.id = touch.identifier;
+          attackStick.active = true;
+          attackStick.startX = attackStick.currX = touch.clientX;
+          attackStick.startY = attackStick.currY = touch.clientY;
+          attackStick.dx = 0;
+          attackStick.dy = 0;
+        }
+      }
+    }
+
+    function handleTouchMove(e) {
+      e.preventDefault();
+      for (let touch of e.changedTouches) {
+        if (touch.identifier === moveStick.id) {
+          moveStick.currX = touch.clientX;
+          moveStick.currY = touch.clientY;
+          let deltaX = moveStick.currX - moveStick.startX;
+          let deltaY = moveStick.currY - moveStick.startY;
+          let dist = Math.hypot(deltaX, deltaY);
+          if (dist > JOY_RADIUS) {
+            deltaX = (deltaX / dist) * JOY_RADIUS;
+            deltaY = (deltaY / dist) * JOY_RADIUS;
+          }
+          moveStick.dx = deltaX / JOY_RADIUS;
+          moveStick.dy = deltaY / JOY_RADIUS;
+        } else if (touch.identifier === attackStick.id) {
+          attackStick.currX = touch.clientX;
+          attackStick.currY = touch.clientY;
+          let deltaX = attackStick.currX - attackStick.startX;
+          let deltaY = attackStick.currY - attackStick.startY;
+          let dist = Math.hypot(deltaX, deltaY);
+          if (dist > JOY_RADIUS) {
+            deltaX = (deltaX / dist) * JOY_RADIUS;
+            deltaY = (deltaY / dist) * JOY_RADIUS;
+          }
+          attackStick.dx = deltaX / JOY_RADIUS;
+          attackStick.dy = deltaY / JOY_RADIUS;
+        }
+      }
+    }
+
+    function handleTouchEnd(e) {
+      e.preventDefault();
+      for (let touch of e.changedTouches) {
+        if (touch.identifier === moveStick.id) {
+          moveStick.active = false;
+          moveStick.dx = 0;
+          moveStick.dy = 0;
+          moveStick.id = null;
+        } else if (touch.identifier === attackStick.id) {
+          attackStick.active = false;
+          attackStick.dx = 0;
+          attackStick.dy = 0;
+          attackStick.id = null;
+        }
+      }
+    }
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: false });
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd, { passive: false });
+    window.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+
+    // Desktop Keyboard Fallback
+    const keys = {};
+    window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+    window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+    // ==========================================
+    // UPDATE GAME LOOP
+    // ==========================================
+    function update() {
+      // 1. Movement logic
+      let mx = moveStick.dx;
+      let my = moveStick.dy;
+
+      if (keys['w'] || keys['arrowup']) my = -1;
+      if (keys['s'] || keys['arrowdown']) my = 1;
+      if (keys['a'] || keys['arrowleft']) mx = -1;
+      if (keys['d'] || keys['arrowright']) mx = 1;
+
+      let moveMag = Math.hypot(mx, my);
+      if (moveMag > 0.2) {
+        let normX = mx / (moveMag > 1 ? moveMag : 1);
+        let normY = my / (moveMag > 1 ? moveMag : 1);
+
+        let nextX = player.x + normX * player.speed;
+        let nextY = player.y + normY * player.speed;
+
+        // Collision detection against map walls
+        let col1 = Math.floor((nextX - player.radius) / TILE_SIZE);
+        let col2 = Math.floor((nextX + player.radius) / TILE_SIZE);
+        let row1 = Math.floor((player.y - player.radius) / TILE_SIZE);
+        let row2 = Math.floor((player.y + player.radius) / TILE_SIZE);
+
+        if (map[row1][col1] === 0 && map[row1][col2] === 0 && map[row2][col1] === 0 && map[row2][col2] === 0) {
+          player.x = nextX;
+        }
+
+        col1 = Math.floor((player.x - player.radius) / TILE_SIZE);
+        col2 = Math.floor((player.x + player.radius) / TILE_SIZE);
+        row1 = Math.floor((nextY - player.radius) / TILE_SIZE);
+        row2 = Math.floor((nextY + player.radius) / TILE_SIZE);
+
+        if (map[row1][col1] === 0 && map[row1][col2] === 0 && map[row2][col1] === 0 && map[row2][col2] === 0) {
+          player.y = nextY;
+        }
+
+        player.facingAngle = Math.atan2(normY, normX);
+      }
+
+      // 2. Sword / Attack logic
+      let ax = attackStick.dx;
+      let ay = attackStick.dy;
+
+      let atkMag = Math.hypot(ax, ay);
+      if (atkMag > 0.3) {
+        player.isAttacking = true;
+        player.swordAngle = Math.atan2(ay, ax);
+        player.swordArc = (player.swordArc + 0.3) % (Math.PI * 2);
+      } else {
+        player.isAttacking = false;
+      }
+
+      // 3. Enemies Update
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        let e = enemies[i];
+        if (e.hitTimer > 0) e.hitTimer--;
+
+        // Move towards player
+        let edx = player.x - e.x;
+        let edy = player.y - e.y;
+        let dist = Math.hypot(edx, edy);
+
+        if (dist > 0) {
+          e.x += (edx / dist) * e.speed;
+          e.y += (edy / dist) * e.speed;
+        }
+
+        // Damage Player
+        if (dist < player.radius + e.radius) {
+          player.hp = Math.max(0, player.hp - 0.4);
+        }
+
+        // Hit by Sword
+        if (player.isAttacking) {
+          let swordTipX = player.x + Math.cos(player.swordAngle) * 45;
+          let swordTipY = player.y + Math.sin(player.swordAngle) * 45;
+          let hitDist = Math.hypot(e.x - swordTipX, e.y - swordTipY);
+
+          if (hitDist < e.radius + 20 && e.hitTimer === 0) {
+            e.hp -= 15;
+            e.hitTimer = 10;
+            // Knockback
+            e.x += Math.cos(player.swordAngle) * 20;
+            e.y += Math.sin(player.swordAngle) * 20;
+            addHitParticles(e.x, e.y, '#e74c3c');
+
+            if (e.hp <= 0) {
+              enemies.splice(i, 1);
+              player.kills++;
+              continue;
+            }
+          }
+        }
+      }
+
+      // 4. Update particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+    }
+
+    // ==========================================
+    // RENDER GAME LOOP
+    // ==========================================
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Camera Offset
+      const camX = Math.floor(canvas.width / 2 - player.x);
+      const camY = Math.floor(canvas.height / 2 - player.y);
+
+      ctx.save();
+      ctx.translate(camX, camY);
+
+      // 1. Draw Map (Squished 32x32 textures rendered to TILE_SIZE grid)
+      for (let r = 0; r < MAP_ROWS; r++) {
+        for (let c = 0; c < MAP_COLS; c++) {
+          let drawTex = (map[r][c] === 1) ? texWall : texGrass;
+          ctx.drawImage(drawTex, c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        }
+      }
+
+      // 2. Draw Enemies
+      for (let e of enemies) {
+        ctx.save();
+        ctx.translate(e.x, e.y);
+        if (e.hitTimer > 0) ctx.filter = 'brightness(200%)';
+        // Draw squished 32x32 enemy texture centered
+        ctx.drawImage(texSlime, -18, -18, 36, 36);
+        ctx.restore();
+      }
+
+      // 3. Draw Player
+      ctx.save();
+      ctx.translate(player.x, player.y);
+      ctx.rotate(player.facingAngle + Math.PI / 2);
+      ctx.drawImage(texHero, -20, -20, 40, 40);
+      ctx.restore();
+
+      // 4. Draw Sword
+      ctx.save();
+      ctx.translate(player.x, player.y);
+      let activeAngle = player.isAttacking ? player.swordAngle : player.facingAngle + 0.5;
+      ctx.rotate(activeAngle + Math.PI / 2);
+
+      // Swing animation offset
+      let swordOffset = player.isAttacking ? Math.sin(player.swordArc) * 8 : 0;
+      ctx.drawImage(texSword, -16, -42 + swordOffset, 32, 32);
+      ctx.restore();
+
+      // Slash Effect Arc
+      if (player.isAttacking) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, 42, player.swordAngle - 0.6, player.swordAngle + 0.6);
+        ctx.stroke();
+      }
+
+      // 5. Draw Particles
+      for (let p of particles) {
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, 4, 4);
+      }
+
+      ctx.restore(); // Restore camera transformation
+
+      // ==========================================
+      // DRAW UI & TOUCH JOYSTICKS
+      // ==========================================
+
+      // Move Joystick UI
+      if (moveStick.active) {
+        drawJoystickUI(moveStick.startX, moveStick.startY, moveStick.currX, moveStick.currY, '#3498db');
+      }
+
+      // Attack Joystick UI
+      if (attackStick.active) {
+        drawJoystickUI(attackStick.startX, attackStick.startY, attackStick.currX, attackStick.currY, '#e74c3c');
+      }
+
+      // HUD Header
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(10, 10, 220, 60);
+
+      // Health Bar
+      ctx.fillStyle = '#444';
+      ctx.fillRect(20, 20, 200, 16);
+      ctx.fillStyle = '#2ecc71';
+      ctx.fillRect(20, 20, (player.hp / player.maxHp) * 200, 16);
+
+      // Kill Counter Text
+      ctx.fillStyle = '#fff';
+      ctx.font = '14px monospace';
+      ctx.fillText(`HP: ${Math.ceil(player.hp)} / ${player.maxHp}`, 25, 33);
+      ctx.fillText(`KILLS: ${player.kills}`, 20, 58);
+
+      if (player.hp <= 0) {
+        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#e74c3c';
+        ctx.font = 'bold 36px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText("YOU DIED", canvas.width / 2, canvas.height / 2);
+        ctx.font = '16px monospace';
+        ctx.fillStyle = '#fff';
+        ctx.fillText("Refresh page to restart", canvas.width / 2, canvas.height / 2 + 40);
+      }
+    }
+
+    function drawJoystickUI(sx, sy, cx, cy, color) {
+      ctx.save();
+      // Outer ring
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = 0.4;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(sx, sy, JOY_RADIUS, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Inner Knob
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.7;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Main Loop
+    function loop() {
+      if (player.hp > 0) update();
+      render();
+      requestAnimationFrame(loop);
+    }
+    loop();
+  </script>
+</body>
+</html>

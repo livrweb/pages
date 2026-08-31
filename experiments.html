@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="darkroom">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiments — Liver B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-name" id="site-logo">Liver B</a>
+  <ul class="nav-links" id="nav-links">
+    <li><a href="/">About</a></li>
+    <li><a href="/experiments.html">Experiments</a></li>
+    <li><a href="/studio.html">Studio</a></li>
+    <li><a href="/photos.html">Photos</a></li>
+    <li class="void-link"><a href="/studio.html#admin-vault">Void</a></li>
+    <li class="theme-btn-mobile">
+      <button class="theme-btn" id="theme-btn-mobile" type="button">
+        <span class="dot"></span><span id="theme-label-mobile">Darkroom</span>
+      </button>
+    </li>
+  </ul>
+  <div class="nav-right">
+    <button class="theme-btn desktop-only" id="theme-btn" type="button" aria-label="Switch theme">
+      <span class="dot"></span><span id="theme-label">Darkroom</span>
+    </button>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="nav-links">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="scroll-progress" id="scroll-progress"></div>
+</nav>
+<div class="nav-backdrop" id="nav-backdrop"></div>
+
+<main>
+
+  <section id="experiments" class="reveal">
+    <div class="section-head">
+      <h2>Experiments</h2>
+      <span id="exp-count">39 projects</span>
+    </div>
+    <div class="exp-toolbar">
+      <input type="text" class="exp-search" id="exp-search" placeholder="Search experiments...">
+      <div class="exp-filters" id="exp-filters">
+        <button class="filter-btn active" data-filter="all" type="button">All</button>
+        <button class="filter-btn" data-filter="game" type="button">Game</button>
+        <button class="filter-btn" data-filter="tool" type="button">Tool</button>
+      </div>
+    </div>
+    <div class="exp-grid" id="exp-grid">
+      <div class="exp-card" data-tag="game" data-name="livers water world">
+        <span class="n">01 <span class="tag">Game</span></span>
+        <span class="t">Livers Water World</span>
+        <p class="desc">A little water-physics playground — poke it and see what happens.</p>
+        <div class="row-actions">
+          <a href="/bubble" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="the one where you die">
+        <span class="n">02 <span class="tag">Game</span></span>
+        <span class="t">The One Where You Die</span>
+        <p class="desc">A tiny RPG that does not take itself seriously. You will probably die.</p>
+        <div class="row-actions">
+          <a href="/rpg" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="tool" data-name="minemap">
+        <span class="n">03 <span class="tag">Tool</span></span>
+        <span class="t">MineMap</span>
+        <p class="desc">A map viewer/utility built for poking around in world data.</p>
+        <div class="row-actions">
+          <a href="/map/index" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="livers cardthing">
+        <span class="n">04 <span class="tag">Game</span></span>
+        <span class="t">Livers CardThing</span>
+        <p class="desc">A small card game/toy — rules still a bit made up as it goes.</p>
+        <div class="row-actions">
+          <a href="/card" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="tool" data-name="paint">
+        <span class="n">05 <span class="tag">Tool</span></span>
+        <span class="t">Paint</span>
+        <p class="desc">A browser paint tool. No layers, no undo, all vibes.</p>
+        <div class="row-actions">
+          <a href="/paint" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="mobile html tabletop simulator">
+        <span class="n">06 <span class="tag">Game</span></span>
+        <span class="t">Mobile HTML Tabletop Simulator</span>
+        <p class="desc">A drag-and-drop virtual tabletop for playing games on a phone.</p>
+        <div class="row-actions">
+          <a href="/simulator/tabletop.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="rpg by gemini (w/ chatgpt assist)">
+        <span class="n">07 <span class="tag">Game</span></span>
+        <span class="t">RPG by Gemini (w/ ChatGPT assist)</span>
+        <p class="desc">A collaborative build of the Gemini RPG, patched up with ChatGPT.</p>
+        <div class="row-actions">
+          <a href="/simulator/rpgemini%20-%20Copy.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="mobile dual-stick rpg">
+        <span class="n">08 <span class="tag">Game</span></span>
+        <span class="t">Mobile Dual-Stick RPG</span>
+        <p class="desc">A touch-controlled dual-stick RPG built for phones.</p>
+        <div class="row-actions">
+          <a href="/simulator/rpgemini.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="squarebound rpg">
+        <span class="n">09 <span class="tag">Game</span></span>
+        <span class="t">Squarebound RPG</span>
+        <p class="desc">A small square-grid RPG, mostly written by ChatGPT.</p>
+        <div class="row-actions">
+          <a href="/simulator/rpchatgpt.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="he's asleep simulator">
+        <span class="n">10 <span class="tag">Game</span></span>
+        <span class="t">He's Asleep Simulator</span>
+        <p class="desc">Exactly what it sounds like. Don't wake him.</p>
+        <div class="row-actions">
+          <a href="/simulator/wowhesasleep.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="wobbly drive mobile">
+        <span class="n">11 <span class="tag">Game</span></span>
+        <span class="t">Wobbly Drive Mobile</span>
+        <p class="desc">The mobile port of the wobbly-screen driving toy.</p>
+        <div class="row-actions">
+          <a href="/simulator/drunk%20-%20Copy.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="fuck shit ass simulator">
+        <span class="n">12 <span class="tag">Game</span></span>
+        <span class="t">Fuck Shit Ass Simulator</span>
+        <p class="desc">A joke simulator that is exactly as dumb as the name.</p>
+        <div class="row-actions">
+          <a href="/simulator/fuckshitass.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="wobbly drive">
+        <span class="n">13 <span class="tag">Game</span></span>
+        <span class="t">Wobbly Drive</span>
+        <p class="desc">A driving toy where the whole screen sways like you shouldn't be behind the wheel.</p>
+        <div class="row-actions">
+          <a href="/simulator/drunk.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="popsicle maker simulator">
+        <span class="n">14 <span class="tag">Game</span></span>
+        <span class="t">Popsicle Maker Simulator</span>
+        <p class="desc">Mix flavors and freeze your own popsicle, virtually.</p>
+        <div class="row-actions">
+          <a href="/simulator/Popsicle.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="tool" data-name="anime character creator">
+        <span class="n">15 <span class="tag">Tool</span></span>
+        <span class="t">Anime Character Creator</span>
+        <p class="desc">A layer-based tool for building an anime character from parts.</p>
+        <div class="row-actions">
+          <a href="/simulator/anime.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="plant breeding simulator">
+        <span class="n">16 <span class="tag">Game</span></span>
+        <span class="t">Plant Breeding Simulator</span>
+        <p class="desc">Cross-breed virtual plants and see what traits stick.</p>
+        <div class="row-actions">
+          <a href="/simulator/plant.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="shape simulator">
+        <span class="n">17 <span class="tag">Game</span></span>
+        <span class="t">Shape Simulator</span>
+        <p class="desc">Falling shapes, physics, chaos. That's the whole pitch.</p>
+        <div class="row-actions">
+          <a href="/simulator/shapesim.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="social anxiety simulator mobile">
+        <span class="n">18 <span class="tag">Game</span></span>
+        <span class="t">Social Anxiety Simulator Mobile</span>
+        <p class="desc">A short, awkward little simulator about social situations.</p>
+        <div class="row-actions">
+          <a href="/simulator/woman.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="toenail clipping simulator">
+        <span class="n">19 <span class="tag">Game</span></span>
+        <span class="t">Toenail Clipping Simulator</span>
+        <p class="desc">A weirdly satisfying clicker about clipping toenails.</p>
+        <div class="row-actions">
+          <a href="/simulator/toe.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="tool" data-name="virtual chem lab">
+        <span class="n">20 <span class="tag">Tool</span></span>
+        <span class="t">Virtual Chem Lab</span>
+        <p class="desc">Mix virtual chemicals without the risk of an actual lab accident.</p>
+        <div class="row-actions">
+          <a href="/simulator/chem-lab.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="tool" data-name="parody polka machine">
+        <span class="n">21 <span class="tag">Tool</span></span>
+        <span class="t">Parody Polka Machine</span>
+        <p class="desc">A song-mashing toy inspired by parody polka medleys.</p>
+        <div class="row-actions">
+          <a href="/simulator/oddal.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="backrooms">
+        <span class="n">22 <span class="tag">Game</span></span>
+        <span class="t">Backrooms</span>
+        <p class="desc">A liminal-space wander through the Backrooms.</p>
+        <div class="row-actions">
+          <a href="/simulator/loom.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="human history simulator: age of chaos">
+        <span class="n">23 <span class="tag">Game</span></span>
+        <span class="t">Human History Simulator: Age of Chaos</span>
+        <p class="desc">Fast-forward through a chaotic, made-up version of human history.</p>
+        <div class="row-actions">
+          <a href="/simulator/history.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="object show studio">
+        <span class="n">24 <span class="tag">Game</span></span>
+        <span class="t">Object Show Studio</span>
+        <p class="desc">A studio for building your own object-show style characters.</p>
+        <div class="row-actions">
+          <a href="/simulator/object-show-simulator(2).html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="depression simulator">
+        <span class="n">25 <span class="tag">Game</span></span>
+        <span class="t">Depression Simulator</span>
+        <p class="desc">A short, moody interactive vignette.</p>
+        <div class="row-actions">
+          <a href="/simulator/depression.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="weight gaining simulator">
+        <span class="n">26 <span class="tag">Game</span></span>
+        <span class="t">Weight Gaining Simulator</span>
+        <p class="desc">A joke clicker about gaining virtual weight.</p>
+        <div class="row-actions">
+          <a href="/simulator/fat%20simulator.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="ragebait simulator">
+        <span class="n">27 <span class="tag">Game</span></span>
+        <span class="t">Ragebait Simulator</span>
+        <p class="desc">A toy designed purely to be annoying on purpose.</p>
+        <div class="row-actions">
+          <a href="/simulator/ragebait.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="object show studio (v1)">
+        <span class="n">28 <span class="tag">Game</span></span>
+        <span class="t">Object Show Studio (v1)</span>
+        <p class="desc">The earlier build of the object-show character studio.</p>
+        <div class="row-actions">
+          <a href="/simulator/object-show-simulator.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="kingshot ad, de-nagged">
+        <span class="n">29 <span class="tag">Game</span></span>
+        <span class="t">Kingshot Ad, De-Nagged</span>
+        <p class="desc">A mobile game ad with the app-store links and paywall stripped out.</p>
+        <div class="row-actions">
+          <a href="/simulator/index-cleaned.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="tool" data-name="yapbot 3000">
+        <span class="n">30 <span class="tag">Tool</span></span>
+        <span class="t">Yapbot 3000</span>
+        <p class="desc">A chatbot toy that just will not stop talking.</p>
+        <div class="row-actions">
+          <a href="/simulator/yapbot.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="jump over potato sack simulator">
+        <span class="n">31 <span class="tag">Game</span></span>
+        <span class="t">Jump Over Potato Sack Simulator</span>
+        <p class="desc">An endless-runner styled DNA/potato-sack jumping game.</p>
+        <div class="row-actions">
+          <a href="/simulator/dna.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="garyism: hail the snail (pocket)">
+        <span class="n">32 <span class="tag">Game</span></span>
+        <span class="t">Garyism: Hail the Snail (Pocket)</span>
+        <p class="desc">The pocket-sized build of the Garyism snail game.</p>
+        <div class="row-actions">
+          <a href="/simulator/garyismpoc.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="garyism: hail the snail">
+        <span class="n">33 <span class="tag">Game</span></span>
+        <span class="t">Garyism: Hail the Snail</span>
+        <p class="desc">A small game built entirely around worshipping a snail named Gary.</p>
+        <div class="row-actions">
+          <a href="/simulator/garyism.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="tap the bouncing image">
+        <span class="n">34 <span class="tag">Game</span></span>
+        <span class="t">Tap the Bouncing Image</span>
+        <p class="desc">A minimal tap-timing game with a bouncing sprite.</p>
+        <div class="row-actions">
+          <a href="/simulator/spambounce.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="tool" data-name="dynamic multi-counter dashboard">
+        <span class="n">35 <span class="tag">Tool</span></span>
+        <span class="t">Dynamic Multi-Counter Dashboard</span>
+        <p class="desc">A configurable dashboard of counters for tracking whatever you want.</p>
+        <div class="row-actions">
+          <a href="/simulator/counter.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="super animal world — touch edition">
+        <span class="n">36 <span class="tag">Game</span></span>
+        <span class="t">Super Animal World — Touch Edition</span>
+        <p class="desc">A touch-controlled animal platformer.</p>
+        <div class="row-actions">
+          <a href="/simulator/game.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="tool" data-name="minecraft mobile home screen (mockup)">
+        <span class="n">37 <span class="tag">Tool</span></span>
+        <span class="t">Minecraft Mobile Home Screen (mockup)</span>
+        <p class="desc">A UI mockup of a Minecraft-style mobile home screen.</p>
+        <div class="row-actions">
+          <a href="/simulator/TMD.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="simulator simulator">
+        <span class="n">38 <span class="tag">Game</span></span>
+        <span class="t">Simulator Simulator</span>
+        <p class="desc">A simulator of simulators. Yes, really.</p>
+        <div class="row-actions">
+          <a href="/simulator/simulator%20simulator.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+      <div class="exp-card" data-tag="game" data-name="meme simulator">
+        <span class="n">39 <span class="tag">Game</span></span>
+        <span class="t">Meme Simulator</span>
+        <p class="desc">A toy for slapping together your own meme templates.</p>
+        <div class="row-actions">
+          <a href="/simulator/meme_simulator.html" class="g" target="_blank" rel="noopener noreferrer">Open →</a>
+          <button class="details-btn" type="button">Details</button>
+        </div>
+      </div>
+    </div>
+    <p class="exp-empty" id="exp-empty">No experiments match that search.</p>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+<div class="idle-whisper" id="idle-whisper"></div>
+<div class="disco-ball" id="disco-ball"></div>
+
+<footer>
+  &copy; Liver B — built and broken by hand
+  <div class="whisper" id="whisper"></div>
+</footer>
+
+<script src="/assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<!-- you took a wrong turn somewhere. this terminal is what's here instead. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>404 — nothing here but this terminal</title>
+<style>
+  :root{
+    --bg:#0a0d0a; --fg:#39ff6a; --dim:#1f6b38; --err:#ff4d4d; --edge:#173521;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; margin:0; }
+  body{
+    background:var(--bg); color:var(--fg);
+    font-family:'IBM Plex Mono','Courier New',monospace;
+    display:flex; align-items:center; justify-content:center;
+    padding:24px;
+  }
+  .crt{
+    width:100%; max-width:680px; background:#040604; border:1px solid var(--edge);
+    border-radius:8px; box-shadow:0 0 0 1px #000, 0 0 40px rgba(57,255,106,.08);
+    overflow:hidden;
+  }
+  .crt-bar{
+    display:flex; align-items:center; gap:6px; padding:8px 12px;
+    background:#0e130e; border-bottom:1px solid var(--edge); font-size:.72rem; color:var(--dim);
+  }
+  .crt-bar .dot{ width:9px; height:9px; border-radius:50%; background:var(--edge); }
+  .crt-body{
+    height:60vh; max-height:520px; min-height:360px;
+    overflow-y:auto; padding:16px 18px; font-size:.86rem; line-height:1.55;
+  }
+  .crt-body::-webkit-scrollbar{ width:8px; }
+  .crt-body::-webkit-scrollbar-thumb{ background:var(--edge); border-radius:4px; }
+  .line{ white-space:pre-wrap; word-break:break-word; margin:0 0 2px; }
+  .line.err{ color:var(--err); }
+  .line.dim{ color:var(--dim); }
+  .prompt-row{ display:flex; gap:8px; align-items:baseline; }
+  .prompt-row .p{ color:var(--fg); flex:none; }
+  .prompt-row input{
+    flex:1; background:transparent; border:none; outline:none; color:var(--fg);
+    font-family:inherit; font-size:.86rem; caret-color:var(--fg);
+  }
+  .hint{ padding:8px 18px 14px; font-size:.68rem; color:var(--dim); border-top:1px solid var(--edge); }
+  a.home{ color:var(--fg); }
+</style>
+</head>
+<body>
+<div class="crt">
+  <div class="crt-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>&nbsp;error-terminal</div>
+  <div class="crt-body" id="crt-body">
+    <p class="line">404 — that page doesn't exist. this terminal does, though.</p>
+    <p class="line dim">type "help" for a list of commands.</p>
+    <div class="prompt-row">
+      <span class="p">visitor@404:~$</span>
+      <input id="cmd-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" autofocus>
+    </div>
+  </div>
+  <div class="hint">stuck? "help" lists commands. "home" gets you out of here.</div>
+</div>
+
+<script>
+(function(){
+  const body = document.getElementById('crt-body');
+  const input = document.getElementById('cmd-input');
+  const history = [];
+  let histIdx = -1;
+
+  const files = {
+    'note.txt': "you weren't supposed to break the link that got you here, but here we are.",
+    'todo.txt': "- fix the 404 page\n- (you're looking at the fix)\n- ship it\n- forget this file exists",
+  };
+
+  const fs = {
+    cwd: '/',
+    tree: {
+      'note.txt': 'file',
+      'todo.txt': 'file',
+      'projects': { type:'dir', children:{ 'secret': { type:'dir', children:{ 'key.txt': 'file' } } } },
+    }
+  };
+
+  function println(text, cls) {
+    const p = document.createElement('p');
+    p.className = 'line' + (cls ? ' ' + cls : '');
+    p.textContent = text;
+    body.insertBefore(p, body.lastElementChild);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function help() {
+    println([
+      'available commands:',
+      '  help            show this list',
+      '  ls              list files here',
+      '  cat <file>      print a file',
+      '  cd <dir>        change directory',
+      '  whoami          guess',
+      '  sudo <anything> nice try',
+      '  fortune         a small terminal fortune',
+      '  clear           clear the screen',
+      '  home            go back to the actual site',
+    ].join('\n'));
+  }
+
+  const fortunes = [
+    'a page not found today is a bug fixed tomorrow.',
+    'you will find what you are looking for. it is not on this page.',
+    'the cache remembers what the server forgot.',
+    'somewhere, a link is 404ing right now and does not know it yet.',
+  ];
+
+  function resolveDir(path) {
+    // extremely small pretend filesystem, only supports a couple of paths
+    if (path === '..' || path === '/') return { name:'/', node: fs.tree };
+    if (fs.tree[path] && fs.tree[path].type === 'dir') return { name: path, node: fs.tree[path].children };
+    if (fs.cwd !== '/' && fs.tree.projects && fs.tree.projects.children[path]) {
+      return { name: path, node: fs.tree.projects.children[path].children };
+    }
+    return null;
+  }
+
+  function run(raw) {
+    const trimmed = raw.trim();
+    if (!trimmed) return;
+    history.push(trimmed);
+    histIdx = history.length;
+
+    const echo = document.createElement('p');
+    echo.className = 'line';
+    echo.textContent = 'visitor@404:~$ ' + trimmed;
+    body.insertBefore(echo, body.lastElementChild);
+
+    const [cmd, ...rest] = trimmed.split(/\s+/);
+    const arg = rest.join(' ');
+
+    switch (cmd.toLowerCase()) {
+      case 'help': help(); break;
+      case 'ls':
+        println(Object.keys(fs.cwd === '/' ? fs.tree : (resolveDir(fs.cwd)?.node || fs.tree))
+          .map(k => (fs.tree[k] && fs.tree[k].type === 'dir') ? k + '/' : k).join('   ') || '(empty)');
+        break;
+      case 'cat':
+        if (!arg) { println('usage: cat <file>', 'dim'); break; }
+        if (files[arg]) println(files[arg]);
+        else println(`cat: ${arg}: no such file (or you can't read this one)`, 'err');
+        break;
+      case 'cd':
+        if (!arg || arg === '..' || arg === '/' ) { fs.cwd = '/'; println('now in /'); break; }
+        { const d = resolveDir(arg);
+          if (d) { fs.cwd = arg; println(`now in /${arg}/`); }
+          else println(`cd: ${arg}: no such directory`, 'err'); }
+        break;
+      case 'whoami': println('a visitor who followed a broken link. respect.'); break;
+      case 'sudo': println(`Permission denied. This incident will not be reported, because there's no one to report it to.`, 'err'); break;
+      case 'fortune': println(fortunes[Math.floor(Math.random() * fortunes.length)]); break;
+      case 'clear':
+        [...body.querySelectorAll('.line')].forEach(l => l.remove());
+        break;
+      case 'home': case 'exit': case 'quit':
+        println('taking you home...');
+        setTimeout(() => { window.location.href = '/'; }, 500);
+        break;
+      default:
+        println(`command not found: ${cmd}. type "help" if you're lost (you are).`, 'err');
+    }
+    body.scrollTop = body.scrollHeight;
+  }
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      run(input.value);
+      input.value = '';
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (histIdx > 0) { histIdx--; input.value = history[histIdx] || ''; }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (histIdx < history.length) { histIdx++; input.value = history[histIdx] || ''; }
+    }
+  });
+
+  document.addEventListener('click', () => input.focus());
+  input.focus();
+})();
+</script>
+</body>
+</html>

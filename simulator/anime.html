@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Anime Character Creator</title>
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+}
+body {
+    background: #1a1a2e;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+header {
+    background: #16213e;
+    padding: 15px;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border-bottom: 2px solid #0f3460;
+}
+.preview-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #0f3460;
+    position: relative;
+    overflow: hidden;
+}
+.canvas-box {
+    width: 280px;
+    height: 380px;
+    background: #fff;
+    border-radius: 20px;
+    position: relative;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    overflow: hidden;
+}
+svg {
+    width: 100%;
+    height: 100%;
+}
+.controls-container {
+    height: 240px;
+    background: #16213e;
+    display: flex;
+    flex-direction: column;
+    border-top: 2px solid #0f3460;
+}
+.tabs {
+    display: flex;
+    background: #0f3460;
+}
+.tab {
+    flex: 1;
+    padding: 12px 0;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #a0a0a0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.tab.active {
+    color: #fff;
+    background: #16213e;
+    border-bottom: 3px solid #e94560;
+}
+.panel {
+    flex: 1;
+    padding: 15px;
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+}
+.panel.active {
+    display: flex;
+}
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.control-label {
+    font-size: 0.8rem;
+    color: #b0b0b0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.button-row {
+    display: flex;
+    gap: 8px;
+}
+.option-btn {
+    flex: 1;
+    padding: 10px;
+    background: #0f3460;
+    color: #fff;
+    border: 2px solid #e94560;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+.option-btn:active {
+    background: #e94560;
+}
+.color-picker-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+.color-swatch {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+
+<header>Anime Creator Simulator</header>
+
+<div class="preview-container">
+    <div class="canvas-box">
+        <svg viewBox="0 0 200 280">
+            <rect width="200" height="280" fill="#f0f4f8" />
+            <g id="outfitLayer">
+                <path d="M60 220 L140 220 L150 280 L50 280 Z" fill="#e94560" />
+                <path d="M85 220 L115 220 L115 250 L85 250 Z" fill="#ffffff" />
+            </g>
+            <g id="bodyLayer">
+                <circle cx="100" cy="120" r="45" fill="#ffdbac" id="skinColor" />
+                <path d="M70 150 Q100 170 130 150 L130 170 Q100 190 70 170 Z" fill="#ffdbac" id="neckColor" />
+            </g>
+            <g id="eyesLayer">
+                <ellipse cx="80" cy="120" rx="8" ry="12" fill="#2c3e50" id="leftEye" />
+                <ellipse cx="120" cy="120" rx="8" ry="12" fill="#2c3e50" id="rightEye" />
+                <circle cx="78" cy="116" r="3" fill="#ffffff" />
+                <circle cx="118" cy="116" r="3" fill="#ffffff" />
+            </g>
+            <g id="mouthLayer">
+                <path d="M95 140 Q100 145 105 140" stroke="#c0392b" stroke-width="2" fill="none" stroke-linecap="round" id="mouthShape" />
+            </g>
+            <g id="hairBackLayer">
+                <path d="M55 90 Q40 140 60 190 L75 180 Q60 140 65 100 Z" fill="#2c3e50" id="hairBackColor" />
+                <path d="M145 90 Q160 140 140 190 L125 180 Q140 140 135 100 Z" fill="#2c3e50" id="hairBackRightColor" />
+            </g>
+            <g id="hairFrontLayer">
+                <path d="M55 95 Q100 70 145 95 Q130 130 100 110 Q70 130 55 95 Z" fill="#2c3e50" id="hairColor" />
+            </g>
+        </svg>
+    </div>
+</div>
+
+<div class="controls-container">
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab(0)">Face</button>
+        <button class="tab" onclick="switchTab(1)">Hair</button>
+        <button class="tab" onclick="switchTab(2)">Outfit</button>
+    </div>
+
+    <div class="panel active" id="panel-0">
+        <div class="control-group">
+            <span class="control-label">Skin Tone</span>
+            <div class="color-picker-row">
+                <div class="color-swatch" style="background:#ffdbac;" onclick="setSkin('#ffdbac')"></div>
+                <div class="color-swatch" style="background:#f1c27d;" onclick="setSkin('#f1c27d')"></div>
+                <div class="color-swatch" style="background:#e0ac69;" onclick="setSkin('#e0ac69')"></div>
+                <div class="color-swatch" style="background:#c68642;" onclick="setSkin('#c68642')"></div>
+                <div class="color-swatch" style="background:#8d5524;" onclick="setSkin('#8d5524')"></div>
+            </div>
+        </div>
+        <div class="control-group">
+            <span class="control-label">Eye Color</span>
+            <div class="color-picker-row">
+                <div class="color-swatch" style="background:#2c3e50;" onclick="setEyes('#2c3e50')"></div>
+                <div class="color-swatch" style="background:#2980b9;" onclick="setEyes('#2980b9')"></div>
+                <div class="color-swatch" style="background:#27ae60;" onclick="setEyes('#27ae60')"></div>
+                <div class="color-swatch" style="background:#d35400;" onclick="setEyes('#d35400')"></div>
+                <div class="color-swatch" style="background:#8e44ad;" onclick="setEyes('#8e44ad')"></div>
+            </div>
+        </div>
+        <div class="control-group">
+            <span class="control-label">Mouth Expression</span>
+            <div class="button-row">
+                <button class="option-btn" onclick="setMouth('smile')">Smile</button>
+                <button class="option-btn" onclick="setMouth('neutral')">Neutral</button>
+                <button class="option-btn" onclick="setMouth('grin')">Grin</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel" id="panel-1">
+        <div class="control-group">
+            <span class="control-label">Hair Style</span>
+            <div class="button-row">
+                <button class="option-btn" onclick="setHairStyle(1)">Style 1</button>
+                <button class="option-btn" onclick="setHairStyle(2)">Style 2</button>
+            </div>
+        </div>
+        <div class="control-group">
+            <span class="control-label">Hair Color</span>
+            <div class="color-picker-row">
+                <div class="color-swatch" style="background:#2c3e50;" onclick="setHair('#2c3e50')"></div>
+                <div class="color-swatch" style="background:#e74c3c;" onclick="setHair('#e74c3c')"></div>
+                <div class="color-swatch" style="background:#f1c40f;" onclick="setHair('#f1c40f')"></div>
+                <div class="color-swatch" style="background:#9b59b6;" onclick="setHair('#9b59b6')"></div>
+                <div class="color-swatch" style="background:#ffffff; border-color:#333;" onclick="setHair('#ffffff')"></div>
+                <div class="color-swatch" style="background:#34495e;" onclick="setHair('#34495e')"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel" id="panel-2">
+        <div class="control-group">
+            <span class="control-label">Outfit Color</span>
+            <div class="color-picker-row">
+                <div class="color-swatch" style="background:#e94560;" onclick="setOutfit('#e94560')"></div>
+                <div class="color-swatch" style="background:#3498db;" onclick="setOutfit('#3498db')"></div>
+                <div class="color-swatch" style="background:#2ecc71;" onclick="setOutfit('#2ecc71')"></div>
+                <div class="color-swatch" style="background:#f39c12;" onclick="setOutfit('#f39c12')"></div>
+                <div class="color-swatch" style="background:#34495e;" onclick="setOutfit('#34495e')"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function switchTab(index) {
+    const tabs = document.querySelectorAll('.tab');
+    const panels = document.querySelectorAll('.panel');
+    tabs.forEach((tab, i) => {
+        if(i === index) {
+            tab.classList.add('active');
+            panels[i].classList.add('active');
+        } else {
+            tab.classList.remove('active');
+            panels[i].classList.remove('active');
+        }
+    });
+}
+
+function setSkin(color) {
+    document.getElementById('skinColor').setAttribute('fill', color);
+    document.getElementById('neckColor').setAttribute('fill', color);
+}
+
+function setEyes(color) {
+    document.getElementById('leftEye').setAttribute('fill', color);
+    document.getElementById('rightEye').setAttribute('fill', color);
+}
+
+function setMouth(type) {
+    const mouth = document.getElementById('mouthShape');
+    if(type === 'smile') {
+        mouth.setAttribute('d', 'M90 140 Q100 150 110 140');
+    } else if(type === 'neutral') {
+        mouth.setAttribute('d', 'M92 142 L108 142');
+    } else if(type === 'grin') {
+        mouth.setAttribute('d', 'M90 138 Q100 155 110 138');
+    }
+}
+
+function setHair(color) {
+    document.getElementById('hairColor').setAttribute('fill', color);
+    document.getElementById('hairBackColor').setAttribute('fill', color);
+    document.getElementById('hairBackRightColor').setAttribute('fill', color);
+}
+
+function setHairStyle(style) {
+    const hairFront = document.getElementById('hairColor');
+    const hairBackLeft = document.getElementById('hairBackColor');
+    const hairBackRight = document.getElementById('hairBackRightColor');
+    if(style === 1) {
+        hairFront.setAttribute('d', 'M55 95 Q100 70 145 95 Q130 130 100 110 Q70 130 55 95 Z');
+        hairBackLeft.style.display = 'block';
+        hairBackRight.style.display = 'block';
+    } else if(style === 2) {
+        hairFront.setAttribute('d', 'M50 90 Q100 50 150 90 Q135 120 100 105 Q65 120 50 90 Z');
+        hairBackLeft.style.display = 'none';
+        hairBackRight.style.display = 'none';
+    }
+}
+
+function setOutfit(color) {
+    const outfit = document.querySelector('#outfitLayer path');
+    outfit.setAttribute('fill', color);
+}
+</script>
+
+</body>
+</html>

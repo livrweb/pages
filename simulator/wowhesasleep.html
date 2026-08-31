@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>He's Asleep Simulator</title>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    background: #111;
+    color: #fff;
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+    touch-action: none;
+}
+canvas {
+    background: #1e1e2f;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    aspect-ratio: 3/5;
+}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas" width="360" height="600"></canvas>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let gameState = 'START';
+let score = 0;
+let bestScore = 0;
+let sleepTimer = 0;
+let sleeperState = 'SLEEPING';
+let isHolding = false;
+let zzzList = [];
+
+function resetGame() {
+    score = 0;
+    sleeperState = 'SLEEPING';
+    sleepTimer = randomRange(100, 200);
+    gameState = 'PLAYING';
+}
+
+function randomRange(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+window.addEventListener('pointerdown', (e) => {
+    if (gameState === 'START' || gameState === 'GAMEOVER') {
+        resetGame();
+    } else if (gameState === 'PLAYING') {
+        isHolding = true;
+        if (sleeperState === 'AWAKE') {
+            gameOver();
+        }
+    }
+});
+
+window.addEventListener('pointerup', (e) => {
+    isHolding = false;
+});
+
+function gameOver() {
+    gameState = 'GAMEOVER';
+    if (score > bestScore) {
+        bestScore = score;
+    }
+}
+
+function update() {
+    if (gameState === 'PLAYING') {
+        sleepTimer--;
+        if (sleepTimer <= 0) {
+            if (sleeperState === 'SLEEPING') {
+                sleeperState = 'STIRRING';
+                sleepTimer = 35;
+            } else if (sleeperState === 'STIRRING') {
+                sleeperState = 'AWAKE';
+                sleepTimer = 60;
+                if (isHolding) {
+                    gameOver();
+                }
+            } else if (sleeperState === 'AWAKE') {
+                sleeperState = 'SLEEPING';
+                sleepTimer = randomRange(120, 250);
+            }
+        }
+
+        if (sleeperState === 'SLEEPING' && isHolding) {
+            score += 1;
+        } else if (sleeperState === 'AWAKE' && isHolding) {
+            gameOver();
+        }
+
+        if (sleeperState === 'SLEEPING' && Math.random() < 0.05) {
+            zzzList.push({ x: 180 + randomRange(-20, 20), y: 250, alpha: 1 });
+        }
+
+        for (let i = zzzList.length - 1; i >= 0; i--) {
+            zzzList[i].y -= 1;
+            zzzList[i].x += Math.sin(zzzList[i].y * 0.05) * 0.5;
+            zzzList[i].alpha -= 0.02;
+            if (zzzList[i].alpha <= 0) {
+                zzzList.splice(i, 1);
+            }
+        }
+    }
+}
+
+function draw() {
+    ctx.fillStyle = '#161622';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#2d2d44';
+    ctx.beginPath();
+    ctx.arc(180, 280, 80, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffccaa';
+    ctx.beginPath();
+    ctx.arc(180, 270, 50, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (sleeperState === 'SLEEPING') {
+        ctx.fillStyle = '#111';
+        ctx.fillRect(160, 260, 15, 4);
+        ctx.fillRect(185, 260, 15, 4);
+        
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(180, 285, 10, 0, Math.PI, false);
+        ctx.stroke();
+    } else if (sleeperState === 'STIRRING') {
+        ctx.fillStyle = '#ff5555';
+        ctx.font = 'bold 30px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('...?', 180, 220);
+
+        ctx.fillStyle = '#111';
+        ctx.beginPath();
+        ctx.arc(167, 262, 6, 0, Math.PI * 2);
+        ctx.arc(192, 262, 6, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (sleeperState === 'AWAKE') {
+        ctx.fillStyle = '#ff3333';
+        ctx.font = 'bold 35px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('!', 180, 210);
+
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(167, 262, 10, 0, Math.PI * 2);
+        ctx.arc(192, 262, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(167, 262, 4, 0, Math.PI * 2);
+        ctx.arc(192, 262, 4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.fillStyle = '#aaddff';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.textAlign = 'center';
+    for (let z of zzzList) {
+        ctx.globalAlpha = z.alpha;
+        ctx.fillText('z', z.x, z.y);
+    }
+    ctx.globalAlpha = 1;
+
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px sans-serif';
+    ctx.fillText(`Score: ${Math.floor(score / 10)}`, 180, 60);
+    ctx.fillText(`Best: ${Math.floor(bestScore / 10)}`, 180, 90);
+
+    if (gameState === 'START') {
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 24px sans-serif';
+        ctx.fillText("HE'S ASLEEP SIMULATOR", 180, 200);
+        ctx.font = '15px sans-serif';
+        ctx.fillStyle = '#aaa';
+        ctx.fillText("Hold screen to sneak forward.", 180, 260);
+        ctx.fillText("Release when he stirs or wakes up!", 180, 290);
+        ctx.fillStyle = '#4cd137';
+        ctx.fillText("Tap anywhere to start", 180, 380);
+    } else if (gameState === 'GAMEOVER') {
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ff5555';
+        ctx.font = 'bold 28px sans-serif';
+        ctx.fillText("HE WOKE UP!", 180, 230);
+        ctx.fillStyle = '#fff';
+        ctx.font = '18px sans-serif';
+        ctx.fillText(`Final Score: ${Math.floor(score / 10)}`, 180, 280);
+        ctx.fillStyle = '#4cd137';
+        ctx.fillText("Tap to try again", 180, 350);
+    }
+}
+
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>

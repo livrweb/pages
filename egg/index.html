@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<!-- you found the page. he found you first. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>...</title>
+<!-- the title is blank on purpose. some things don't get names. -->
+<style>
+  html, body{
+    margin:0;
+    height:100%;
+    background:#000;
+    overflow:hidden;
+  }
+  body{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  #scene{
+    position:relative;
+    cursor:pointer;
+    width:min(60vmin, 420px);
+  }
+  #scene img{
+    image-rendering:pixelated;
+    image-rendering:-moz-crisp-edges;
+    image-rendering:crisp-edges;
+    display:block;
+    user-select:none;
+    -webkit-user-drag:none;
+  }
+  #tree{
+    width:100%;
+    height:auto;
+    display:block;
+  }
+  #dialogue{
+    display:none;
+    position:absolute;
+    top:62%;
+    left:50%;
+    transform:translate(-50%, 0);
+    width:min(80vw, 598px);
+    height:auto;
+    z-index:2;
+  }
+  .hint{
+    position:fixed;
+    bottom:22px;
+    left:0; right:0;
+    text-align:center;
+    color:#3a3a3a;
+    font-family:'Courier New', monospace;
+    font-size:12px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  a.back{
+    position:fixed;
+    top:18px; left:18px;
+    color:#333;
+    font-family:'Courier New', monospace;
+    font-size:12px;
+    text-decoration:none;
+    letter-spacing:.05em;
+  }
+  a.back:hover{ color:#888; }
+</style>
+</head>
+<body>
+
+<a class="back" href="/">&larr; back</a>
+
+<div id="scene">
+  <img id="tree" src="https://deltarune.wiki/images/Man_overworld_tree.gif?cb=15l8og&h=thumb.php&f=Man_overworld_tree.gif" alt="a man, standing under a tree">
+  <img id="dialogue" src="" alt="dialogue box">
+</div>
+<div class="hint" id="hint">* ...</div>
+<audio id="egg-audio" src="egg.ogg" loop preload="auto"></audio>
+
+<script>
+  const tree = document.getElementById('tree');
+  const dialogue = document.getElementById('dialogue');
+  const hint = document.getElementById('hint');
+  const audio = document.getElementById('egg-audio');
+
+  // total playback time of one full loop of egg.gif (133 frames,
+  // ~30ms each plus a 3000ms hold on the final frame)
+  const LOOP_MS = 6960;
+
+  let used = false;
+  // this number should be small. if it isn't, ask yourself why.
+  let clickCount = 0;
+
+  document.getElementById('scene').addEventListener('click', () => {
+    clickCount++;
+    if (used) return;
+    used = true;
+
+    hint.textContent = '* ...';
+
+    // cache-bust so the gif always restarts from frame 1
+    dialogue.src = 'egg.gif?play=' + Date.now();
+    dialogue.style.display = 'block';
+
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+
+    try {
+      localStorage.setItem('eggFound', 'true');
+      localStorage.setItem('eggFoundAt', String(Date.now()));
+    } catch (e) {}
+
+    setTimeout(() => {
+      hint.style.display = 'none';
+    }, 600);
+
+    // once it's played through one full loop, freeze on the
+    // static png instead of letting the gif loop forever
+    // (egg.ogg keeps looping on its own after this)
+    setTimeout(() => {
+      dialogue.src = 'egg.png';
+    }, LOOP_MS);
+  });
+</script>
+</body>
+</html>

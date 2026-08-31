@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OBJECT SHOW STUDIO</title>
+<style>
+  :root{
+    --stage:#16121b;
+    --panel:#231d2b;
+    --panel2:#2b2333;
+    --pink:#ff3d81;
+    --teal:#00d9c0;
+    --mustard:#ffb800;
+    --purple:#8b7cf6;
+    --cream:#fdf6ec;
+    --muted:#b9aec4;
+    --line:#3a3145;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--stage);
+    color:var(--cream);
+    font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    padding-bottom:60px;
+  }
+  .marquee{
+    text-align:center;
+    padding:28px 16px 18px;
+    border-bottom:4px solid var(--mustard);
+    background:
+      repeating-linear-gradient(90deg, var(--mustard) 0 10px, transparent 10px 26px) top/100% 6px no-repeat,
+      var(--panel);
+    position:relative;
+  }
+  .marquee h1{
+    font-family:'Arial Black',Impact,sans-serif;
+    font-size:clamp(28px,5vw,52px);
+    letter-spacing:2px;
+    margin:10px 0 4px;
+    color:var(--cream);
+    text-shadow:3px 3px 0 var(--pink), 6px 6px 0 var(--teal);
+  }
+  .marquee p{color:var(--muted);margin:0;font-size:14px;letter-spacing:1px;text-transform:uppercase;}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px 16px;}
+  .bar{
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:14px;margin-bottom:20px;
+  }
+  button{
+    font-family:inherit;font-weight:700;letter-spacing:.3px;
+    border:none;border-radius:10px;padding:10px 16px;cursor:pointer;
+    background:var(--teal);color:#0a1a17;transition:transform .1s ease;
+  }
+  button:hover{transform:translateY(-1px);}
+  button.secondary{background:var(--panel2);color:var(--cream);border:1px solid var(--line);}
+  button.pink{background:var(--pink);color:#2a0713;}
+  button.mustard{background:var(--mustard);color:#2a1c00;}
+  button:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+  select, input[type=range]{
+    background:var(--panel2);color:var(--cream);border:1px solid var(--line);
+    border-radius:8px;padding:8px 10px;font-family:inherit;
+  }
+  label.small{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr;}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;}
+  .panel h2{margin:0 0 12px;font-size:15px;text-transform:uppercase;letter-spacing:1px;color:var(--mustard);}
+  .teamHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .teamHead span{font-weight:800;}
+  .cardRow{display:flex;flex-wrap:wrap;gap:8px;}
+  .card{
+    display:flex;align-items:center;gap:8px;
+    background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+    padding:8px 10px;font-size:13px;
+  }
+  .card.out{opacity:.4;text-decoration:line-through;}
+  .card .arch{color:var(--muted);font-size:10px;display:block;}
+  .swatch{width:10px;height:10px;border-radius:50%;flex:none;}
+  .hostCard{display:flex;align-items:center;gap:10px;background:var(--panel2);border:2px solid var(--mustard);border-radius:12px;padding:10px 14px;}
+  .hostCard .emoji{font-size:28px;}
+  .storyLine{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:14px;}
+  .storyLine .badge{font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:6px;font-weight:800;flex:none;}
+  .badge-alliance{background:var(--teal);color:#0a1a17;}
+  .badge-rivalry{background:var(--pink);color:#2a0713;}
+  .standRow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;}
+  .standRow:last-child{border-bottom:none;}
+  .standRow .pts{color:var(--mustard);font-weight:800;}
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+  .tab{
+    background:var(--panel2);border:1px solid var(--line);color:var(--muted);
+    padding:8px 14px;border-radius:999px;cursor:pointer;font-weight:700;font-size:13px;
+  }
+  .tab.active{background:var(--pink);color:#2a0713;border-color:var(--pink);}
+  .stageWrap{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:20px;}
+  canvas{width:100%;max-width:640px;display:block;margin:0 auto;background:#0d0a12;border-radius:12px;border:2px solid var(--line);}
+  .stageControls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:12px;}
+  .status{text-align:center;color:var(--muted);font-size:13px;margin-top:8px;min-height:18px;}
+  .beat{
+    display:flex;gap:10px;align-items:flex-start;
+    background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+    padding:10px;margin-bottom:10px;
+  }
+  .beat .who{flex:none;width:88px;text-align:center;font-size:12px;color:var(--muted);}
+  .beat .who .em{font-size:24px;display:block;}
+  .beat textarea{
+    flex:1;background:var(--stage);color:var(--cream);border:1px solid var(--line);
+    border-radius:8px;padding:8px;font-family:inherit;font-size:14px;min-height:44px;resize:vertical;
+  }
+  .beat .actions{display:flex;flex-direction:column;gap:6px;}
+  .beat .actions button{padding:6px 8px;font-size:12px;}
+  .typeTag{
+    display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.5px;
+    padding:2px 6px;border-radius:6px;margin-bottom:4px;background:var(--panel2);color:var(--cream);border:1px solid var(--line);
+  }
+  .tag-host{background:var(--mustard);color:#2a1c00;border:none;}
+  .tag-banter{background:var(--teal);color:#0a1a17;border:none;}
+  .tag-elimination{background:var(--pink);color:#2a0713;border:none;}
+  .tag-confessional{background:#6d5a91;color:#fdf6ec;border:none;}
+  .tag-obstacle{background:#2e8f80;color:#eafffb;border:none;}
+  .tag-twist{background:#ff8a00;color:#2a1c00;border:none;}
+  .tag-recap{background:#4a3f5c;color:var(--muted);border:none;}
+  .tag-betrayal{background:#c2185b;color:#fff0f5;border:none;}
+  .tag-rivalry{background:#d1477a;color:#fff;border:none;}
+  .tag-alliance{background:#1fb3a0;color:#00251f;border:none;}
+  .tag-finale{background:linear-gradient(90deg,var(--mustard),var(--pink));color:#241000;border:none;}
+  .addLine{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px;}
+  .addLine textarea{flex:1;min-width:200px;}
+  .note{font-size:12px;color:var(--muted);line-height:1.5;margin-top:10px;padding:10px;background:var(--panel2);border-radius:10px;border:1px dashed var(--line);}
+  a.dl{color:var(--teal);font-weight:700;}
+</style>
+</head>
+<body>
+
+<div class="marquee">
+  <h1>★ OBJECT SHOW STUDIO ★</h1>
+  <p>Cast · Compete · Get Voted Off</p>
+</div>
+
+<div class="wrap">
+
+  <div class="bar">
+    <button class="pink" id="genBtn">🎲 Generate New Season</button>
+    <label class="small">Narrator voice
+      <select id="voiceSelect"></select>
+    </label>
+    <label class="small">Speech rate
+      <input type="range" id="rateRange" min="0.7" max="1.4" step="0.1" value="1">
+    </label>
+    <button class="secondary" id="exportScriptBtn">⬇ Export script (.txt)</button>
+  </div>
+
+  <div class="grid2" id="castPanels"></div>
+
+  <div class="grid2">
+    <div class="panel" id="storyPanel"></div>
+    <div class="panel" id="standingsPanel"></div>
+  </div>
+
+  <div class="panel" id="hostPanel" style="margin-bottom:20px;"></div>
+
+  <div class="tabs" id="epTabs"></div>
+
+  <div class="stageWrap">
+    <canvas id="stage" width="640" height="360"></canvas>
+    <div class="stageControls">
+      <button id="playBtn">▶ Play episode</button>
+      <button class="secondary" id="stopBtn">⏹ Stop</button>
+      <button class="mustard" id="recordBtn">⏺ Record &amp; export video</button>
+    </div>
+    <div class="status" id="statusLine"></div>
+    <div id="downloadArea" style="text-align:center;"></div>
+    <div class="note">
+      Playback uses your browser's built-in text-to-speech, so voices depend on your device/browser. When you record,
+      this app captures the <em>visuals</em> (stage + speech bubbles) as a downloadable video file. Browsers don't let
+      web pages grab their own synthesized speech audio, so the exported file is silent — play it back with "Play
+      episode" running alongside if you want narration, or turn on captions (shown by default) for a read-along video.
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2 id="epTitle">Episode script</h2>
+    <div id="beatsList"></div>
+  </div>
+
+</div>
+
+<script>
+// ---------- Data pools ----------
+const OBJECT_POOL = [
+  ["Sock","🧦"],["Toilet Paper","🧻"],["Yo-Yo","🪀"],["Fire Extinguisher","🧯"],
+  ["Bucket","🪣"],["Flashlight","🔦"],["Juice Box","🧃"],["Toothbrush","🪥"],
+  ["Balloon","🎈"],["Ice Cube","🧊"],["Candle","🕯️"],["Waffle","🧇"],
+  ["Cactus","🌵"],["Kite","🪁"],["Umbrella","☂️"],["Paperclip","📎"],
+  ["Die","🎲"],["Lightbulb","💡"],["Pretzel","🥨"],["Sponge","🧽"],
+  ["Mirror","🪞"],["Broom","🧹"],["Magnet","🧲"],["Safety Pin","🧷"],
+  ["Teapot","🫖"],["Accordion","🪗"]
+];
+const COLORS = ["#ff3d81","#00d9c0","#ffb800","#8b7cf6","#4dd0e1","#ff8a5c","#c1e15b","#f06292"];
+
+const ARCHETYPES = [
+  {name:"The Strategist", skillMod:0.08},
+  {name:"The Wildcard", skillMod:0.0, volatile:true},
+  {name:"The Underdog", skillMod:-0.05},
+  {name:"The Overconfident One", skillMod:0.02, volatile:true},
+  {name:"The Loyalist", skillMod:0.0},
+  {name:"The Skeptic", skillMod:0.03},
+  {name:"The Klutz", skillMod:-0.15},
+  {name:"The Perfectionist", skillMod:0.1},
+  {name:"The Peacemaker", skillMod:-0.02},
+  {name:"The Rebel", skillMod:0.04, volatile:true}
+];
+
+const OBSTACLES = [
+  {name:"The Sticky Floor of Doom", verb:"trudge across a floor coated in industrial glue"},
+  {name:"Anvil Alley", verb:"dodge a row of swinging anvils"},
+  {name:"The Riddle Door", verb:"solve a riddle carved into a stone door before time runs out"},
+  {name:"The Greased Flagpole", verb:"climb a fully greased pole to grab the flag"},
+  {name:"The Pit of Mild Inconvenience", verb:"cross a pit filled with something mildly unpleasant"},
+  {name:"The Trivia Trapdoor", verb:"answer a trivia question or fall through the floor"},
+  {name:"The Buzzing Beam", verb:"balance across a beam while fake bees swarm around"},
+  {name:"The Tunnel of Screaming", verb:"crawl through a pitch-black tunnel full of sudden noises"},
+  {name:"The Wall of Mild Peril", verb:"scale a wall that is only slightly too tall"},
+  {name:"The Suspiciously Warm River", verb:"wade across a river that is warmer than a river should be"},
+  {name:"The Maze of Mirrors", verb:"navigate a maze of mirrors without losing your lunch"},
+  {name:"The Catapult Launch", verb:"get launched by a catapult onto a landing platform"},
+  {name:"The Endurance Spinner", verb:"survive sixty seconds on a rapidly spinning platform"},
+  {name:"The Final Stretch Sprint", verb:"sprint the last stretch and slam the buzzer first"}
+];
+
+const EPISODE_TITLES = [
+  "First Blood","No Turning Back","Cracks in the Foundation","Trust Issues",
+  "The Long Way Down","Nowhere to Hide","Burning Bridges","Sudden Death",
+  "The Weight of It All","Down to the Wire"
+];
+
+const SUCCESS_TEMPLATES = [
+  "{name} nails it, clearing {obstacle} like it's nothing!",
+  "Against all odds, {name} makes it through {obstacle} clean.",
+  "{name} grits it out and conquers {obstacle}.",
+  "Smooth and steady — {name} clears {obstacle} with room to spare."
+];
+const FAIL_TEMPLATES = [
+  "{name} doesn't make it — {obstacle} wins this round.",
+  "Ouch. {name} gets wrecked by {obstacle}.",
+  "So close! {name} stumbles right at the end of {obstacle}.",
+  "{name} taps out, defeated by {obstacle}."
+];
+
+const HOST_INTRO = [
+  "Welcome back, contestants. Today's course is no joke.",
+  "Rise and shine! Today we separate the winners from the eliminated.",
+  "Good morning, disasters-in-waiting. Let's get into it.",
+  "Let's not waste time — today's course is brutal."
+];
+const HOST_RESULT = [
+  "{winTeam} takes the win! {loseTeam}, I'll see you at the elimination stage.",
+  "That's a wrap — {winTeam} wins immunity. {loseTeam}, someone's going home.",
+  "Scores are in: {winTeam} pulls ahead. {loseTeam}, get ready to vote."
+];
+const ELIMINATION_LINES = [
+  "The votes are in... {eliminated}, you've been voted off the show.",
+  "I'm sorry, {eliminated} — the audience has spoken. Pack your things.",
+  "Tonight's eliminated contestant is... {eliminated}. Thanks for playing."
+];
+const CONFESSIONAL_LINES = [
+  "{eliminated}: Honestly? I saw this coming. Good luck to the rest of you.",
+  "{eliminated}: I have NO regrets. Okay, maybe one regret.",
+  "{eliminated}: This is a conspiracy and I will be back next season.",
+  "{eliminated}: It's fine. It's totally fine. I'm fine."
+];
+const HOST_OUTRO = [
+  "That's all for today! Tune in next time — it only gets harder from here.",
+  "Another one bites the dust. See you next episode.",
+  "Until next time, stay sharp. You're going to need it."
+];
+const BANTER_PAIRS = [
+  ["{A}: I can't believe we have to do this again.","{B}: Relax, it's not like you could mess it up more than last time."],
+  ["{A}: Did you SEE what {B} just did out there?","{B}: I improvised! It worked, didn't it?"],
+  ["{A}: My strategy is simple — don't get voted off.","{B}: Groundbreaking plan, truly."],
+  ["{A}: If we lose this one I'm blaming {B}.","{B}: Cool, love that for me."],
+  ["{A}: Do you think the host even likes us?","{B}: The host likes ratings. That's it."],
+  ["{A}: This course is rigged.","{B}: It's the same course for everyone!"],
+  ["{A}: I have a good feeling about today.","{B}: You say that every episode."]
+];
+
+// ---------- State ----------
+let cast = null;
+let season = [];
+let currentEp = 0;
+let voices = [];
+let playing = false;
+let recording = false;
+let mediaRecorder = null;
+let recordedChunks = [];
+let stopRequested = false;
+
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+
+// ---------- Helpers ----------
+function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function pickN(arr,n){
+  const pool = arr.slice(); const out=[];
+  while(out.length<n && pool.length){ out.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]); }
+  return out;
+}
+function fill(t, map){ return t.replace(/\{(\w+)\}/g, (_,k)=> map[k] ?? `{${k}}`); }
+function findById(id){ return cast.all.find(c=>c.id===id); }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function weightedPick(items, weightFn){
+  const weights = items.map(weightFn).map(w=>Math.max(0.02,w));
+  const total = weights.reduce((a,b)=>a+b,0);
+  let r = Math.random()*total;
+  for(let i=0;i<items.length;i++){ r -= weights[i]; if(r<=0) return items[i]; }
+  return items[items.length-1];
+}
+
+// ---------- Cast generation ----------
+function generateCast(){
+  const chosenObjects = pickN(OBJECT_POOL, 11);
+  const colors = pickN(COLORS, 8);
+  const archetypes = pickN(ARCHETYPES, 10);
+  const people = chosenObjects.map((o,i)=>({
+    id:'c'+i, name:o[0], emoji:o[1], color: colors[i%colors.length]
+  }));
+  const host = people[0];
+  host.isHost = true;
+  const rest = people.slice(1);
+  rest.forEach((p,i)=>{
+    const arch = archetypes[i];
+    p.archetype = arch.name;
+    p.skill = clamp(0.45 + Math.random()*0.35 + arch.skillMod + (arch.volatile? (Math.random()-0.5)*0.15 : 0), 0.25, 0.92);
+    p.points = 0;
+  });
+  const teamA = rest.slice(0,5);
+  const teamB = rest.slice(5,10);
+  teamA.forEach(p=>p.team='A');
+  teamB.forEach(p=>p.team='B');
+
+  const allianceTeam = Math.random()<0.5 ? teamA : teamB;
+  const alliance = pickN(allianceTeam, 2);
+  const otherTeam = allianceTeam===teamA ? teamB : teamA;
+  const sameTeamRivalPool = allianceTeam.filter(p=>!alliance.includes(p));
+  const rivalry = [ rand(sameTeamRivalPool.length? sameTeamRivalPool : allianceTeam), rand(otherTeam) ];
+
+  return { host, teamA, teamB, all: people, allianceIds: alliance.map(p=>p.id), rivalryIds: rivalry.map(p=>p.id), allianceBroken:false, winnerId:null };
+}
+
+// ---------- Season generation ----------
+function generateSeason(castObj){
+  const EP_COUNT = 8;
+  const SWAP_EP = 3, BETRAY_EP = 4, MERGE_EP = 6, FINALE_EP = 7;
+
+  let remaining = { A: castObj.teamA.slice(), B: castObj.teamB.slice() };
+  const runnerPointer = { A:0, B:0 };
+  const epTitles = pickN(EPISODE_TITLES, 6);
+  const usedObstacles = new Set();
+  let lastSummary = "";
+  const eps = [];
+
+  function pickCourse(){
+    let pool = OBSTACLES.filter(o=>!usedObstacles.has(o.name));
+    if(pool.length<3){ usedObstacles.clear(); pool = OBSTACLES.slice(); }
+    const course = pickN(pool,3);
+    course.forEach(o=>usedObstacles.add(o.name));
+    return course;
+  }
+
+  function nextRunner(teamKey){
+    const list = remaining[teamKey];
+    if(!list.length) return null;
+    const r = list[runnerPointer[teamKey] % list.length];
+    runnerPointer[teamKey]++;
+    return r;
+  }
+
+  function attemptObstacle(runner, obstacle){
+    const success = Math.random() < runner.skill;
+    if(success) runner.points += 2;
+    const tmpl = success? rand(SUCCESS_TEMPLATES) : rand(FAIL_TEMPLATES);
+    return { success, text: fill(tmpl, {name: runner.emoji+' '+runner.name, obstacle: obstacle.name}) };
+  }
+
+  function eliminateFrom(pool, protectIds){
+    let candidates = pool.filter(p=>!protectIds.includes(p.id));
+    if(!candidates.length) candidates = pool;
+    return weightedPick(candidates, p=> (1 - p.skill) + 0.1);
+  }
+
+  for(let e=0; e<EP_COUNT; e++){
+    const beats=[];
+    let idc=0; const bid=()=> 'ep'+e+'_b'+(idc++);
+    const isSwap = e===SWAP_EP, isBetray = e===BETRAY_EP, isMerge = e===MERGE_EP, isFinale = e===FINALE_EP;
+
+    let title;
+    if(isSwap) title="The Great Shuffle";
+    else if(isBetray) title="Cracks in the Foundation";
+    else if(isMerge) title="No More Teams";
+    else if(isFinale) title="The Final Stretch";
+    else title = epTitles.pop() || "Another Day, Another Disaster";
+
+    beats.push({id:bid(), speakerId: castObj.host.id, type:'host', text: rand(HOST_INTRO)});
+    if(e>0 && lastSummary){
+      beats.push({id:bid(), speakerId: castObj.host.id, type:'recap', text: `Last time: ${lastSummary}`});
+    }
+
+    // --- Swap twist ---
+    if(isSwap && !isMerge){
+      const all = [...remaining.A, ...remaining.B];
+      const shuffled = pickN(all, all.length);
+      const half = Math.ceil(shuffled.length/2);
+      const newA = shuffled.slice(0,half), newB = shuffled.slice(half);
+      newA.forEach(p=>p.team='A'); newB.forEach(p=>p.team='B');
+      remaining.A = newA; remaining.B = newB;
+      runnerPointer.A=0; runnerPointer.B=0;
+      beats.push({id:bid(), speakerId: castObj.host.id, type:'twist',
+        text:`Twist! The teams are being torn apart and rebuilt right now. New Team A: ${newA.map(p=>p.emoji+' '+p.name).join(', ')}. New Team B: ${newB.map(p=>p.emoji+' '+p.name).join(', ')}.`});
+    }
+
+    if(isMerge){
+      beats.push({id:bid(), speakerId: castObj.host.id, type:'twist',
+        text:"The teams are officially dissolved. From here on, it's every object for themselves."});
+      remaining.ALL = [...remaining.A, ...remaining.B];
+    }
+
+    // --- Alliance / rivalry flavor beats (only while relevant members are alive) ---
+    const allyA = findById(castObj.allianceIds[0]), allyB = findById(castObj.allianceIds[1]);
+    const allyAAlive = remaining.A.includes(allyA)||remaining.B.includes(allyA)||(remaining.ALL&&remaining.ALL.includes(allyA));
+    const allyBAlive = remaining.A.includes(allyB)||remaining.B.includes(allyB)||(remaining.ALL&&remaining.ALL.includes(allyB));
+    const rivA = findById(castObj.rivalryIds[0]), rivB = findById(castObj.rivalryIds[1]);
+    const rivAAlive = remaining.A.includes(rivA)||remaining.B.includes(rivA)||(remaining.ALL&&remaining.ALL.includes(rivA));
+    const rivBAlive = remaining.A.includes(rivB)||remaining.B.includes(rivB)||(remaining.ALL&&remaining.ALL.includes(rivB));
+
+    if(e===0 && allyAAlive && allyBAlive){
+      beats.push({id:bid(), speakerId: allyA.id, type:'alliance', text:`${allyB.emoji} ${allyB.name}, whatever happens, we watch each other's backs. Deal?`});
+      beats.push({id:bid(), speakerId: allyB.id, type:'alliance', text:`Deal. Just don't make me regret it, ${allyA.name}.`});
+      beats.push({id:bid(), speakerId: rivA.id, type:'rivalry', text:`${rivB.emoji} ${rivB.name} thinks they've already won. Cute.`});
+    }
+
+    // --- Challenge course ---
+    const course = pickCourse();
+    beats.push({id:bid(), speakerId: castObj.host.id, type:'obstacle',
+      text:`Today's course: ${course.map(o=>o.name).join(' → ')}. Good luck out there.`});
+
+    let scoreA=0, scoreB=0, individualScores={};
+    if(!isMerge && !isFinale){
+      course.forEach((obstacle, oi)=>{
+        const rA = nextRunner('A'), rB = nextRunner('B');
+        if(rA){ const res = attemptObstacle(rA, obstacle); if(res.success) scoreA++; beats.push({id:bid(), speakerId: rA.id, type:'obstacle', text: res.text}); }
+        if(rB){ const res = attemptObstacle(rB, obstacle); if(res.success) scoreB++; beats.push({id:bid(), speakerId: rB.id, type:'obstacle', text: res.text}); }
+        if(oi===1){
+          const pair = rand(BANTER_PAIRS);
+          const pool = [...remaining.A, ...remaining.B].filter(p=>p);
+          if(pool.length>=2){
+            const [p1,p2] = pickN(pool,2);
+            pair.forEach((line,idx)=>{
+              const filled = fill(line, {A:p1.emoji+' '+p1.name, B:p2.emoji+' '+p2.name}).replace(/^.*?:\s*/,'');
+              beats.push({id:bid(), speakerId: (idx===0?p1:p2).id, type:'banter', text: filled});
+            });
+          }
+        }
+      });
+    } else if(isMerge){
+      const pool = remaining.ALL;
+      course.forEach(obstacle=>{
+        const runner = pool.length? pool[Math.floor(Math.random()*pool.length)] : null;
+        if(runner){ const res = attemptObstacle(runner, obstacle); individualScores[runner.id]=(individualScores[runner.id]||0)+(res.success?1:0); beats.push({id:bid(), speakerId: runner.id, type:'obstacle', text: res.text}); }
+      });
+      if(rivAAlive && rivBAlive){
+        const obstacle = rand(OBSTACLES);
+        const resA = attemptObstacle(rivA, obstacle), resB = attemptObstacle(rivB, obstacle);
+        beats.push({id:bid(), speakerId: castObj.host.id, type:'rivalry', text:`Head to head: ${rivA.name} vs ${rivB.name} on ${obstacle.name}.`});
+        beats.push({id:bid(), speakerId: rivA.id, type:'obstacle', text: resA.text});
+        beats.push({id:bid(), speakerId: rivB.id, type:'obstacle', text: resB.text});
+      }
+    } else if(isFinale){
+      const finalists = remaining.ALL || [...remaining.A, ...remaining.B];
+      course.forEach(obstacle=>{
+        finalists.forEach(f=>{
+          const res = attemptObstacle(f, obstacle);
+          beats.push({id:bid(), speakerId: f.id, type:'finale', text: res.text});
+        });
+      });
+      const winner = finalists.slice().sort((a,b)=>b.points-a.points)[0];
+      castObj.winnerId = winner ? winner.id : null;
+      beats.push({id:bid(), speakerId: castObj.host.id, type:'finale',
+        text: winner ? `And the winner of the season is... ${winner.emoji} ${winner.name}!! What a run.` : "It's a draw for the ages!"});
+      if(winner){
+        beats.push({id:bid(), speakerId: winner.id, type:'confessional', text:`I still can't believe it. Thanks to everyone who doubted me — you made great TV.`});
+      }
+      const runnerUps = finalists.filter(f=>!winner||f.id!==winner.id).sort((a,b)=>b.points-a.points);
+      if(runnerUps.length){
+        beats.push({id:bid(), speakerId: castObj.host.id, type:'finale',
+          text:`Runner-up honors go to ${runnerUps.map(r=>r.emoji+' '+r.name).join(' and ')}. Thanks for an unforgettable season.`});
+      }
+      eps.push({title:`Episode ${e+1}: ${title}`, phase:'finale', eliminated:null, beats});
+      continue;
+    }
+
+    // --- Result + elimination (team / merge phases) ---
+    let eliminated = null;
+    if(!isMerge){
+      const winTeamKey = scoreA===scoreB ? (Math.random()<0.5?'A':'B') : (scoreA>scoreB?'A':'B');
+      const loseTeamKey = winTeamKey==='A'?'B':'A';
+      beats.push({id:bid(), speakerId: castObj.host.id, type:'host',
+        text: fill(rand(HOST_RESULT), {winTeam:'Team '+winTeamKey, loseTeam:'Team '+loseTeamKey})});
+
+      let losers = remaining[loseTeamKey];
+      if(losers.length){
+        if(isBetray && allyAAlive && allyBAlive && losers.includes(allyA) && losers.includes(allyB)){
+          beats.push({id:bid(), speakerId: allyA.id, type:'betrayal',
+            text:`I never thought it would come to this, ${allyB.name}, but I have to think about myself now.`});
+          eliminated = Math.random()<0.5 ? allyA : allyB;
+          castObj.allianceBroken = true;
+          beats.push({id:bid(), speakerId: castObj.host.id, type:'betrayal', text:"An alliance, broken on live television. Brutal."});
+        } else {
+          const protect = [];
+          if(allyAAlive && allyBAlive && losers.includes(allyA) && !losers.includes(allyB)) protect.push(allyA.id);
+          if(allyAAlive && allyBAlive && losers.includes(allyB) && !losers.includes(allyA)) protect.push(allyB.id);
+          eliminated = eliminateFrom(losers, protect);
+        }
+      }
+    } else {
+      // merge: eliminate lowest individual scorer among non-top performers
+      const pool = remaining.ALL;
+      if(pool.length){
+        const sorted = pool.slice().sort((a,b)=>(individualScores[b.id]||0)-(individualScores[a.id]||0));
+        const immune = sorted[0];
+        const votePool = pool.filter(p=>p.id!==immune.id);
+        beats.push({id:bid(), speakerId: castObj.host.id, type:'twist', text:`${immune.emoji} ${immune.name} takes individual immunity this round.`});
+        eliminated = eliminateFrom(votePool.length?votePool:pool, []);
+      }
+    }
+
+    if(eliminated){
+      beats.push({id:bid(), speakerId: castObj.host.id, type:'elimination',
+        text: fill(rand(ELIMINATION_LINES), {eliminated: eliminated.emoji+' '+eliminated.name})});
+      let confessionalText = fill(rand(CONFESSIONAL_LINES), {eliminated: eliminated.name});
+      if(castObj.rivalryIds.includes(eliminated.id)){
+        confessionalText = `${eliminated.name}: At least I don't have to look at ${(eliminated.id===rivA.id?rivB:rivA).name} anymore.`;
+      }
+      beats.push({id:bid(), speakerId: eliminated.id, type:'confessional', text: confessionalText});
+
+      if(remaining.ALL){ remaining.ALL = remaining.ALL.filter(p=>p.id!==eliminated.id); }
+      else { remaining[eliminated.team] = remaining[eliminated.team].filter(p=>p.id!==eliminated.id); }
+
+      if(castObj.rivalryIds.includes(eliminated.id)){
+        const survivor = eliminated.id===rivA.id ? rivB : rivA;
+        const survivorAlive = remaining.A.includes(survivor)||remaining.B.includes(survivor)||(remaining.ALL&&remaining.ALL.includes(survivor));
+        if(survivorAlive){
+          beats.push({id:bid(), speakerId: survivor.id, type:'rivalry', text:`Guess I win this round, ${eliminated.name}. See you never.`});
+        }
+      }
+      lastSummary = `${eliminated.emoji} ${eliminated.name} went home after ${title}.`;
+    } else {
+      lastSummary = `No one went home after ${title}.`;
+    }
+
+    beats.push({id:bid(), speakerId: castObj.host.id, type:'host', text: rand(HOST_OUTRO)});
+    eps.push({title:`Episode ${e+1}: ${title}`, phase: isMerge?'merge':(isSwap?'swap':'team'), eliminated: eliminated?eliminated.id:null, beats});
+  }
+  return eps;
+}
+
+// ---------- Rendering: cast panels ----------
+function renderCastPanels(){
+  const wrap = document.getElementById('castPanels');
+  wrap.innerHTML = '';
+  const eliminatedIds = new Set(season.flatMap(ep=> ep.eliminated? [ep.eliminated]:[]));
+  ['A','B'].forEach(key=>{
+    const team = key==='A'? cast.teamA : cast.teamB;
+    const div = document.createElement('div');
+    div.className='panel';
+    div.innerHTML = `<div class="teamHead"><span style="color:${key==='A'?'var(--pink)':'var(--teal)'}">TEAM ${key} (starting lineup)</span></div>
+      <div class="cardRow">${team.map(p=>`
+        <div class="card ${eliminatedIds.has(p.id)?'out':''}">
+          <span class="swatch" style="background:${p.color}"></span>
+          <span>${p.emoji} ${p.name}<span class="arch">${p.archetype||''}</span></span>
+        </div>`).join('')}</div>`;
+    wrap.appendChild(div);
+  });
+  const hostPanel = document.getElementById('hostPanel');
+  hostPanel.innerHTML = `<h2>Host</h2><div class="hostCard"><span class="emoji">${cast.host.emoji}</span><div><div style="font-weight:800;">${cast.host.name}</div><div style="color:var(--muted);font-size:12px;">keeping everyone in line</div></div></div>`;
+}
+
+function renderStoryPanel(){
+  const el = document.getElementById('storyPanel');
+  const a1 = findById(cast.allianceIds[0]), a2 = findById(cast.allianceIds[1]);
+  const r1 = findById(cast.rivalryIds[0]), r2 = findById(cast.rivalryIds[1]);
+  el.innerHTML = `<h2>Storylines</h2>
+    <div class="storyLine"><span class="badge badge-alliance">Alliance</span> ${a1.emoji} ${a1.name} &amp; ${a2.emoji} ${a2.name}${cast.allianceBroken?' — broken in Episode 5':''}</div>
+    <div class="storyLine"><span class="badge badge-rivalry">Rivalry</span> ${r1.emoji} ${r1.name} vs ${r2.emoji} ${r2.name}</div>
+    <div style="color:var(--muted);font-size:12px;margin-top:8px;">Teams get shuffled in Episode 4. Teams dissolve entirely at the merge in Episode 7. Three finalists face off in Episode 8.</div>`;
+}
+
+function renderStandings(){
+  const el = document.getElementById('standingsPanel');
+  const eliminatedMap = {};
+  season.forEach((ep,i)=>{ if(ep.eliminated) eliminatedMap[ep.eliminated]=i+1; });
+  const contestants = cast.all.filter(p=>!p.isHost).slice().sort((a,b)=>b.points-a.points);
+  el.innerHTML = `<h2>Standings</h2>` + contestants.map(p=>{
+    const status = cast.winnerId===p.id ? '🏆 Winner' : (eliminatedMap[p.id] ? `Out — Ep ${eliminatedMap[p.id]}` : 'Still in it');
+    return `<div class="standRow"><span>${p.emoji} ${p.name}</span><span>${status} <span class="pts">${p.points}pt</span></span></div>`;
+  }).join('');
+}
+
+function renderTabs(){
+  const tabs = document.getElementById('epTabs');
+  tabs.innerHTML='';
+  season.forEach((ep,i)=>{
+    const b = document.createElement('div');
+    b.className='tab'+(i===currentEp?' active':'');
+    b.textContent = `EP ${i+1}`;
+    b.onclick = ()=>{ currentEp=i; renderTabs(); renderBeats(); };
+    tabs.appendChild(b);
+  });
+}
+
+function renderBeats(){
+  document.getElementById('epTitle').textContent = season[currentEp].title;
+  const list = document.getElementById('beatsList');
+  list.innerHTML='';
+  season[currentEp].beats.forEach((beat, idx)=>{
+    const speaker = findById(beat.speakerId) || cast.host;
+    const row = document.createElement('div');
+    row.className='beat';
+    row.innerHTML = `
+      <div class="who"><span class="em">${speaker.emoji}</span>${speaker.name}</div>
+      <div style="flex:1;">
+        <span class="typeTag tag-${beat.type}">${beat.type}</span>
+        <textarea data-idx="${idx}">${beat.text}</textarea>
+      </div>
+      <div class="actions">
+        <button class="secondary" data-play="${idx}">🔊</button>
+        <button class="secondary" data-del="${idx}">✕</button>
+      </div>`;
+    list.appendChild(row);
+  });
+  list.querySelectorAll('textarea').forEach(ta=>{
+    ta.addEventListener('input', e=>{
+      season[currentEp].beats[e.target.dataset.idx].text = e.target.value;
+    });
+  });
+  list.querySelectorAll('[data-play]').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const i = +e.target.dataset.play;
+      speakLine(season[currentEp].beats[i].text);
+    });
+  });
+  list.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const i = +e.target.dataset.del;
+      season[currentEp].beats.splice(i,1);
+      renderBeats();
+    });
+  });
+  renderAddLineForm();
+}
+
+function renderAddLineForm(){
+  const list = document.getElementById('beatsList');
+  const form = document.createElement('div');
+  form.className='addLine';
+  const select = document.createElement('select');
+  cast.all.forEach(p=>{
+    const opt = document.createElement('option');
+    opt.value=p.id; opt.textContent=`${p.emoji} ${p.name}`;
+    select.appendChild(opt);
+  });
+  const ta = document.createElement('textarea');
+  ta.placeholder='Add a custom line for this speaker...';
+  const addBtn = document.createElement('button');
+  addBtn.textContent='+ Add line';
+  addBtn.onclick = ()=>{
+    if(!ta.value.trim()) return;
+    season[currentEp].beats.push({id:'custom'+Date.now(), speakerId: select.value, type:'banter', text: ta.value.trim()});
+    renderBeats();
+  };
+  form.appendChild(select); form.appendChild(ta); form.appendChild(addBtn);
+  list.appendChild(form);
+}
+
+// ---------- Voices ----------
+function loadVoices(){
+  voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+  const sel = document.getElementById('voiceSelect');
+  sel.innerHTML = voices.length
+    ? voices.map((v,i)=>`<option value="${i}">${v.name} (${v.lang})</option>`).join('')
+    : `<option>No TTS voices found on this device</option>`;
+}
+if('speechSynthesis' in window){
+  loadVoices();
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+function speakLine(text){
+  if(!('speechSynthesis' in window) || !voices.length) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  const idx = +document.getElementById('voiceSelect').value || 0;
+  if(voices[idx]) u.voice = voices[idx];
+  u.rate = +document.getElementById('rateRange').value;
+  window.speechSynthesis.speak(u);
+}
+
+// ---------- Stage drawing ----------
+function drawStage(speaker, text, talking){
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0,0,w,h);
+  const grad = ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0,'#241d33'); grad.addColorStop(1,'#0d0a12');
+  ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
+
+  ctx.save();
+  const cx=w/2, cy=h*0.55;
+  const rg = ctx.createRadialGradient(cx,cy,20,cx,cy,220);
+  rg.addColorStop(0,'rgba(255,184,0,0.18)'); rg.addColorStop(1,'rgba(255,184,0,0)');
+  ctx.fillStyle=rg; ctx.fillRect(0,0,w,h);
+  ctx.restore();
+
+  ctx.strokeStyle='#3a3145'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(0,h*0.78); ctx.lineTo(w,h*0.78); ctx.stroke();
+
+  if(speaker){
+    const bounce = talking ? Math.sin(Date.now()/90)*6 : 0;
+    ctx.font = '90px serif';
+    ctx.textAlign='center';
+    ctx.fillText(speaker.emoji, cx, cy - bounce);
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillStyle = speaker.color || '#fdf6ec';
+    ctx.fillText(speaker.name, cx, cy+50);
+
+    if(text){
+      ctx.font='15px sans-serif';
+      const maxW = w-80;
+      const words = text.split(' ');
+      let lines=[]; let cur='';
+      words.forEach(word=>{
+        const test = cur? cur+' '+word : word;
+        if(ctx.measureText(test).width > maxW && cur){ lines.push(cur); cur=word; }
+        else cur=test;
+      });
+      if(cur) lines.push(cur);
+      lines = lines.slice(0,5);
+      const bh = 24*lines.length + 20;
+      const by = 24;
+      ctx.fillStyle='rgba(20,16,26,0.85)';
+      roundRect(ctx, 30, by, w-60, bh, 12); ctx.fill();
+      ctx.strokeStyle=speaker.color||'#fdf6ec'; ctx.lineWidth=2;
+      roundRect(ctx, 30, by, w-60, bh, 12); ctx.stroke();
+      ctx.fillStyle='#fdf6ec'; ctx.textAlign='center';
+      lines.forEach((l,i)=> ctx.fillText(l, w/2, by+24+i*24));
+    }
+  } else {
+    ctx.font='bold 22px sans-serif'; ctx.fillStyle='#fdf6ec'; ctx.textAlign='center';
+    ctx.fillText('Press Play to start the episode', w/2, h/2);
+  }
+}
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+drawStage(null,null,false);
+
+// ---------- Playback ----------
+function waitFor(ms){ return new Promise(res=>setTimeout(res,ms)); }
+
+async function speakAndWait(text){
+  if('speechSynthesis' in window && voices.length){
+    return new Promise(resolve=>{
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      const idx = +document.getElementById('voiceSelect').value || 0;
+      if(voices[idx]) u.voice = voices[idx];
+      u.rate = +document.getElementById('rateRange').value;
+      u.onend = resolve; u.onerror = resolve;
+      window.speechSynthesis.speak(u);
+    });
+  } else {
+    return waitFor(Math.max(1000, text.length*45));
+  }
+}
+
+async function playEpisode(){
+  if(playing) return;
+  playing = true; stopRequested = false;
+  const status = document.getElementById('statusLine');
+  const beats = season[currentEp].beats;
+  for(const beat of beats){
+    if(stopRequested) break;
+    const speaker = findById(beat.speakerId) || cast.host;
+    status.textContent = `${speaker.name} is talking...`;
+    let raf;
+    const animate = ()=>{ drawStage(speaker, beat.text, true); raf = requestAnimationFrame(animate); };
+    animate();
+    await speakAndWait(beat.text);
+    cancelAnimationFrame(raf);
+    drawStage(speaker, beat.text, false);
+    await waitFor(300);
+  }
+  status.textContent = stopRequested ? 'Stopped.' : 'Episode finished.';
+  playing = false;
+}
+
+document.getElementById('playBtn').onclick = playEpisode;
+document.getElementById('stopBtn').onclick = ()=>{
+  stopRequested = true;
+  if('speechSynthesis' in window) window.speechSynthesis.cancel();
+  playing = false;
+  document.getElementById('statusLine').textContent = 'Stopped.';
+};
+
+// ---------- Recording ----------
+document.getElementById('recordBtn').onclick = async ()=>{
+  if(recording) return;
+  const status = document.getElementById('statusLine');
+  const dlArea = document.getElementById('downloadArea');
+  dlArea.innerHTML='';
+  const stream = canvas.captureStream(30);
+  const candidates = ['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'];
+  let mimeType = candidates.find(t=> window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t));
+  if(!mimeType){ status.textContent='Video recording is not supported in this browser.'; return; }
+  recordedChunks = [];
+  mediaRecorder = new MediaRecorder(stream, {mimeType});
+  mediaRecorder.ondataavailable = e=>{ if(e.data.size>0) recordedChunks.push(e.data); };
+  mediaRecorder.onstop = ()=>{
+    const blob = new Blob(recordedChunks, {type: mimeType.split(';')[0]});
+    const url = URL.createObjectURL(blob);
+    const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+    dlArea.innerHTML = `<a class="dl" href="${url}" download="episode_${currentEp+1}.${ext}">⬇ Download episode ${currentEp+1} video (.${ext})</a>`;
+    status.textContent = 'Recording ready to download.';
+    recording = false;
+  };
+  recording = true;
+  status.textContent = 'Recording...';
+  mediaRecorder.start();
+  await playEpisode();
+  mediaRecorder.stop();
+};
+
+// ---------- Export script ----------
+document.getElementById('exportScriptBtn').onclick = ()=>{
+  let out = '';
+  season.forEach(ep=>{
+    out += ep.title.toUpperCase()+'\n';
+    ep.beats.forEach(b=>{
+      const speaker = findById(b.speakerId) || cast.host;
+      out += `${speaker.name}: ${b.text}\n`;
+    });
+    out += '\n';
+  });
+  const blob = new Blob([out], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='object_show_season.txt'; a.click();
+};
+
+// ---------- Init ----------
+function newSeason(){
+  cast = generateCast();
+  season = generateSeason(cast);
+  currentEp = 0;
+  renderCastPanels();
+  renderStoryPanel();
+  renderStandings();
+  renderTabs();
+  renderBeats();
+  drawStage(null,null,false);
+  document.getElementById('statusLine').textContent='';
+  document.getElementById('downloadArea').innerHTML='';
+}
+document.getElementById('genBtn').onclick = newSeason;
+newSeason();
+</script>
+</body>
+</html>

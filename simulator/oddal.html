@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Parody Polka Machine</title>
+    <style>
+        body {
+            background-color: #f7d238; 
+            background-image: 
+                radial-gradient(#ff5f5f 15%, transparent 16%), 
+                radial-gradient(#ff5f5f 15%, transparent 16%);
+            background-size: 60px 60px;
+            background-position: 0 0, 30px 30px;
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', sans-serif;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .app-container {
+            background: #ffffff;
+            border: 4px solid #333;
+            border-radius: 20px;
+            box-shadow: 8px 8px 0px #333;
+            width: 100%;
+            max-width: 450px;
+            padding: 20px;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+            margin-top: 20px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-top: 0;
+            color: #2E86AB;
+            text-shadow: 2px 2px 0px #e0f7fa;
+            line-height: 1.2;
+        }
+        label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: block;
+            color: #333;
+            font-size: 1.1rem;
+        }
+        select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 4px solid #333;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            background: #e0f7fa;
+            appearance: none;
+            outline: none;
+            cursor: pointer;
+        }
+        button {
+            background: #ff5f5f;
+            color: #fff;
+            border: 4px solid #333;
+            padding: 15px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border-radius: 10px;
+            width: 100%;
+            box-shadow: 4px 4px 0px #333;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+            font-family: inherit;
+            margin-top: 10px;
+        }
+        button:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px #333;
+        }
+        .tts-btn {
+            background: #2E86AB;
+            font-size: 1.1rem;
+            padding: 10px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        .stop-btn {
+            background: #333;
+            font-size: 1.1rem;
+            padding: 10px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .output {
+            margin-top: 25px;
+            background: #fff9c4;
+            border: 4px dashed #ff9800;
+            border-radius: 15px;
+            padding: 15px;
+            display: none;
+            animation: popIn 0.3s ease-out;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .song-title {
+            font-size: 1.4rem;
+            color: #e63946;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            font-weight: 900;
+            letter-spacing: 1px;
+        }
+        .artist {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+            border-bottom: 2px solid #ccc;
+            padding-bottom: 10px;
+        }
+        .lyrics {
+            white-space: pre-wrap;
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: #222;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <h1>🪗 The Parody Polka Machine 🍗</h1>
+        
+        <label for="theme">Choose a Weird Topic:</label>
+        <select id="theme">
+            <option value="food">🍔 Obsessive Food & Snacks</option>
+            <option value="tech">🤓 Nerdy Tech & Hardware</option>
+            <option value="medical">🏥 Gross Medical Issues</option>
+            <option value="suburbia">🏡 Mundane Suburbia</option>
+        </select>
+
+        <label for="style">Choose a Musical Vibe:</label>
+        <select id="style">
+            <option value="polka">🪗 The Mandatory Polka Medley</option>
+            <option value="pop">🎸 80s Pop Hit Parody</option>
+            <option value="rap">🎤 90s Rap Anthem Parody</option>
+            <option value="rock">🥁 90s Grunge Parody</option>
+        </select>
+
+        <button onclick="generateLyrics()">🎵 GENERATE SONG 🎵</button>
+
+        <div id="output" class="output">
+            <h2 id="song-title" class="song-title"></h2>
+            <div class="artist">By "Weird" AI</div>
+            
+            <button id="sing-btn" class="tts-btn" onclick="singLyrics()">🎤 SING IT!</button>
+            <button id="stop-btn" class="stop-btn" onclick="stopSinging()">⏹️ STOP</button>
+
+            <div id="lyrics" class="lyrics"></div>
+        </div>
+    </div>
+
+    <script>
+        const vocab = {
+            food: {
+                noun: ["spam", "lasagna", "bologna", "donut", "cabbage", "spatula", "hot dog", "burrito", "mayonnaise", "twinkie", "gravy", "meatloaf"],
+                verb: ["eat", "munch", "grill", "bake", "chew", "swallow", "digest", "deep-fry", "nibble", "slurp"],
+                adj: ["greasy", "delicious", "moldy", "spicy", "crispy", "cheesy", "lukewarm", "stale", "rancid", "buttery"]
+            },
+            tech: {
+                noun: ["linux", "bandwidth", "motherboard", "router", "server", "keyboard", "algorithm", "floppy disk", "pixel", "mainframe", "database"],
+                verb: ["hack", "code", "ping", "reboot", "compile", "download", "scroll", "click", "format", "encrypt"],
+                adj: ["wireless", "encrypted", "laggy", "open-source", "cyber", "virtual", "glitchy", "pixelated", "binary", "404"]
+            },
+            medical: {
+                noun: ["pancreas", "surgeon", "scalpel", "stethoscope", "bandage", "appendix", "ointment", "tonsils", "x-ray", "thermometer", "virus"],
+                verb: ["operate", "sneeze", "cough", "diagnose", "prescribe", "inject", "swab", "heal", "sniffle", "amputate"],
+                adj: ["contagious", "swollen", "nauseous", "itchy", "sterile", "infected", "queasy", "surgical", "inflamed", "feverish"]
+            },
+            suburbia: {
+                noun: ["lawnmower", "minivan", "tupperware", "hoa", "picket fence", "barbecue", "leaf blower", "garage sale", "thermostat", "khakis"],
+                verb: ["mow", "carpool", "grill", "commute", "gossip", "prune", "weed", "sprinkle", "vacuum", "complain"],
+                adj: ["boring", "manicured", "quiet", "suburban", "khaki", "beige", "nosy", "tame", "passive-aggressive", "HOA-approved"]
+            }
+        };
+
+        const templates = {
+            polka: {
+                title: "The {Adj} Polka",
+                body: `A-one, two, three, four! 
+Roll out the {noun}, we'll have a {adj} time!
+{Verb}ing the {noun}, it is so sublime!
+Grab your {noun} and {verb} all night,
+This {adj} polka is outta sight! Hey!
+When the {noun} starts to {verb},
+You'll feel so {adj}, you'll lose your nerve!
+So grab a {noun}, don't be a jerk,
+Let's make this {adj} accordion work! 
+Yodel-ay-hee-hoo!`
+            },
+            pop: {
+                title: "Just {Verb} It",
+                body: `They told him, don't you ever bring your {noun} around here!
+Don't wanna see your {noun}, you better {verb} clear.
+The {noun} is in their eyes and their words are really {adj}.
+So {verb} it! Just {verb} it!
+No one wants to be {adj} and defeated.
+Showin' how {adj} is your {noun}.
+It doesn't matter who's {adj} or wrong.
+Just {verb} it! Just {verb} it!
+{Verb} it! {Verb} it!
+Get yourself a {noun} and {verb} it! Ooh!`
+            },
+            rap: {
+                title: "{Adj} Paradise",
+                body: `As I walk through the valley where I harvest my {noun},
+I take a look at my {noun} and realize there's nothin' left.
+Cause I've been {verb}ing and {verb}ing so long, that
+Even my {noun} thinks that my mind is {adj}.
+But I ain't never crossed a {noun} that didn't deserve it,
+Me be treated like a {adj} punk, you know that's unheard of!
+You better watch how you're {verb}ing, and where you're {verb}ing,
+Or you and your {noun} might be lined in chalk.
+We've been spending most our lives living in a {adj} paradise!
+Churning {noun} once or twice, living in a {adj} paradise!`
+            },
+            rock: {
+                title: "Smells Like {Adj} {Noun}",
+                body: `Load up on {noun}, bring your friends
+It's fun to {verb} and to pretend
+She's over-bored and self-assured
+Oh no, I know a {adj} word!
+Hello, hello, hello, how {adj}?
+Hello, hello, hello, how {adj}?
+With the lights out, it's less {adj}
+Here we are now, entertain us!
+I feel {adj} and contagious
+Here we are now, entertain us!
+A {noun}, an albino, a {noun}, my libido!
+Yeah!`
+            }
+        };
+
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        function getRandomItem(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function makeIng(verb) {
+            if (verb.endsWith('e') && !verb.endsWith('ee')) {
+                return verb.slice(0, -1) + 'ing';
+            }
+            return verb + 'ing';
+        }
+
+        function generateLyrics() {
+            stopSinging();
+            
+            const themeKey = document.getElementById('theme').value;
+            const styleKey = document.getElementById('style').value;
+            
+            const themeData = vocab[themeKey];
+            const template = templates[styleKey];
+            
+            const replaceTokens = (text) => {
+                let res = text;
+                res = res.replace(/{verb}ing/g, () => makeIng(getRandomItem(themeData.verb)));
+                res = res.replace(/{Verb}ing/g, () => capitalize(makeIng(getRandomItem(themeData.verb))));
+                res = res.replace(/{noun}/g, () => getRandomItem(themeData.noun));
+                res = res.replace(/{Noun}/g, () => capitalize(getRandomItem(themeData.noun)));
+                res = res.replace(/{verb}/g, () => getRandomItem(themeData.verb));
+                res = res.replace(/{Verb}/g, () => capitalize(getRandomItem(themeData.verb)));
+                res = res.replace(/{adj}/g, () => getRandomItem(themeData.adj));
+                res = res.replace(/{Adj}/g, () => capitalize(getRandomItem(themeData.adj)));
+                return res;
+            };
+
+            const generatedTitle = replaceTokens(template.title);
+            const generatedLyrics = replaceTokens(template.body);
+
+            document.getElementById('song-title').innerText = generatedTitle;
+            document.getElementById('lyrics').innerText = generatedLyrics;
+            
+            const outputElement = document.getElementById('output');
+            outputElement.style.display = 'block';
+            
+            outputElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function singLyrics() {
+            if (!('speechSynthesis' in window)) {
+                alert("Text-to-speech is not supported in this browser.");
+                return;
+            }
+            
+            stopSinging();
+
+            const title = document.getElementById('song-title').innerText;
+            const lyrics = document.getElementById('lyrics').innerText;
+            const textToSing = title + ". " + lyrics;
+
+            const utterance = new SpeechSynthesisUtterance(textToSing);
+            utterance.pitch = 1.3; 
+            utterance.rate = 1.15; 
+            
+            utterance.onend = function() {
+                document.getElementById('stop-btn').style.display = 'none';
+                document.getElementById('sing-btn').style.display = 'inline-block';
+            };
+
+            document.getElementById('sing-btn').style.display = 'none';
+            document.getElementById('stop-btn').style.display = 'inline-block';
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function stopSinging() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            document.getElementById('stop-btn').style.display = 'none';
+            document.getElementById('sing-btn').style.display = 'inline-block';
+        }
+    </script>
+</body>
+</html>
+

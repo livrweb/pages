@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Weight Gaining Simulator</title>
+    <style>
+        :root {
+            --bg-color: #1e272e;
+            --text-color: #d2dae2;
+            --primary: #0fbcf9;
+            --food: #0be881;
+            --exercise: #ff3f34;
+            --rest: #ffd32a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px 10px;
+            touch-action: manipulation;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 500px;
+            background: #2d3436;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        .stats-board {
+            display: flex;
+            justify-content: space-between;
+            background: #1e272e;
+            padding: 15px;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            color: #fff;
+            margin-top: 5px;
+        }
+
+        .stage {
+            height: 250px;
+            background: #636e72;
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .character {
+            width: 100px;
+            height: 100px;
+            background: #ff7675;
+            border-radius: 40% 40% 45% 45%;
+            position: relative;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: inset -10px -10px 20px rgba(0,0,0,0.2);
+        }
+
+        /* Character Eyes */
+        .character::before, .character::after {
+            content: '';
+            position: absolute;
+            top: 25px;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+        }
+        .character::before { left: 20px; }
+        .character::after { right: 20px; }
+
+        /* Character Pupils */
+        .pupil {
+            position: absolute;
+            top: 30px;
+            width: 8px;
+            height: 8px;
+            background: #2d3436;
+            border-radius: 50%;
+            z-index: 2;
+        }
+        .pupil.left { left: 25px; }
+        .pupil.right { right: 25px; }
+        
+        /* Character Mouth */
+        .mouth {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 10px;
+            background: #2d3436;
+            border-radius: 0 0 20px 20px;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn {
+            border: none;
+            padding: 15px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            color: #1e272e;
+            transition: opacity 0.2s;
+        }
+
+        .btn:active {
+            opacity: 0.7;
+            transform: scale(0.98);
+        }
+
+        .btn-eat { background: var(--food); }
+        .btn-junk { background: #ff9f43; }
+        .btn-exercise { background: var(--exercise); color: white; }
+        .btn-rest { background: var(--rest); grid-column: span 2; }
+
+        .log {
+            height: 100px;
+            background: #1e272e;
+            border-radius: 10px;
+            padding: 10px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #8395a7;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .log-entry.positive { color: var(--food); }
+        .log-entry.negative { color: var(--exercise); }
+        .log-entry.neutral { color: var(--rest); }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <h1>Gainer Sim</h1>
+        
+        <div class="stats-board">
+            <div class="stat">
+                Day
+                <span class="stat-value" id="day-display">1</span>
+            </div>
+            <div class="stat">
+                Weight
+                <span class="stat-value" id="weight-display">150 lbs</span>
+            </div>
+            <div class="stat">
+                Daily Balance
+                <span class="stat-value" id="cal-display">0 kcal</span>
+            </div>
+        </div>
+
+        <div class="stage">
+            <div class="character" id="character">
+                <div class="pupil left"></div>
+                <div class="pupil right"></div>
+                <div class="mouth"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-eat" onclick="performAction('eat', 500, 'Healthy Meal')">Salad / Chicken<br><small>+500 kcal</small></button>
+            <button class="btn btn-junk" onclick="performAction('eat', 1200, 'Pizza')">Pizza / Burger<br><small>+1200 kcal</small></button>
+            <button class="btn btn-exercise" style="grid-column: span 2;" onclick="performAction('exercise', -800, 'Gym Session')">Hit the Gym<br><small>-800 kcal</small></button>
+            <button class="btn btn-rest" onclick="endDay()">Sleep (End Day)</button>
+        </div>
+
+        <div class="log" id="log-container">
+            <!-- Log entries go here -->
+            <div class="log-entry neutral">Welcome! Feed the character to start.</div>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let state = {
+            day: 1,
+            weight: 150.0, // Starting weight in lbs
+            dailyCalories: 0,
+            baseMetabolism: 2000 // Calories burned just existing
+        };
+
+        // DOM Elements
+        const dayEl = document.getElementById('day-display');
+        const weightEl = document.getElementById('weight-display');
+        const calEl = document.getElementById('cal-display');
+        const charEl = document.getElementById('character');
+        const logContainer = document.getElementById('log-container');
+
+        // Core UI Update function
+        function updateUI() {
+            dayEl.innerText = state.day;
+            weightEl.innerText = state.weight.toFixed(1) + ' lbs';
+            
+            // Format calorie balance with + or -
+            let calString = state.dailyCalories > 0 ? '+' + state.dailyCalories : state.dailyCalories;
+            calEl.innerText = calString + ' kcal';
+
+            // Scale Character visually based on weight
+            // Formula: every 10 lbs above 150 increases width by 15% and height by 8%
+            let wScale = 1 + ((state.weight - 150) * 0.015);
+            let hScale = 1 + ((state.weight - 150) * 0.008);
+            
+            // Clamp scaling so it doesn't break the UI (min 0.5, max 3.0)
+            wScale = Math.max(0.5, Math.min(wScale, 3.5));
+            hScale = Math.max(0.5, Math.min(hScale, 2.5));
+
+            charEl.style.transform = `scale(${wScale}, ${hScale})`;
+        }
+
+        function logEvent(message, type = 'neutral') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerText = `[Day ${state.day}] ${message}`;
+            logContainer.prepend(entry);
+        }
+
+        function performAction(actionType, calories, name) {
+            state.dailyCalories += calories;
+            
+            if (actionType === 'eat') {
+                logEvent(`Ate ${name} (+${calories} kcal)`, 'positive');
+            } else if (actionType === 'exercise') {
+                logEvent(`Performed ${name} (${calories} kcal)`, 'negative');
+            }
+            
+            updateUI();
+        }
+
+        function endDay() {
+            // Calculate weight change (3500 calories = 1 lb of fat)
+            // Daily balance accounts for food eaten minus exercises minus base metabolism
+            let netCalories = state.dailyCalories - state.baseMetabolism;
+            let weightChange = netCalories / 3500;
+            
+            state.weight += weightChange;
+            
+            let message = `Slept. BMR burned ${state.baseMetabolism} kcal. `;
+            if (weightChange > 0) {
+                logEvent(message + `Gained ${weightChange.toFixed(2)} lbs!`, 'positive');
+            } else if (weightChange < 0) {
+                logEvent(message + `Lost ${Math.abs(weightChange).toFixed(2)} lbs.`, 'negative');
+            } else {
+                logEvent(message + `Weight stayed exactly the same.`, 'neutral');
+            }
+
+            // Reset for next day
+            state.day++;
+            state.dailyCalories = 0;
+            
+            // Slightly increase metabolism as weight goes up
+            state.baseMetabolism = Math.floor(2000 + ((state.weight - 150) * 5));
+
+            updateUI();
+        }
+
+        // Initial setup
+        updateUI();
+    </script>
+</body>
+</html>

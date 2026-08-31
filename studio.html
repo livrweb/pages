@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="darkroom">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio — Liver B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-name" id="site-logo">Liver B</a>
+  <ul class="nav-links" id="nav-links">
+    <li><a href="/">About</a></li>
+    <li><a href="/experiments.html">Experiments</a></li>
+    <li><a href="/studio.html">Studio</a></li>
+    <li><a href="/photos.html">Photos</a></li>
+    <li class="void-link"><a href="/studio.html#admin-vault">Void</a></li>
+    <li class="theme-btn-mobile">
+      <button class="theme-btn" id="theme-btn-mobile" type="button">
+        <span class="dot"></span><span id="theme-label-mobile">Darkroom</span>
+      </button>
+    </li>
+  </ul>
+  <div class="nav-right">
+    <button class="theme-btn desktop-only" id="theme-btn" type="button" aria-label="Switch theme">
+      <span class="dot"></span><span id="theme-label">Darkroom</span>
+    </button>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="nav-links">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="scroll-progress" id="scroll-progress"></div>
+</nav>
+<div class="nav-backdrop" id="nav-backdrop"></div>
+
+<main>
+
+  <section id="skills" class="reveal">
+    <div class="section-head"><h2>Skills</h2></div>
+    <div class="skills-cols">
+      <div class="skills-col">
+        <h3>Dev</h3>
+        <div class="skill-tags">
+          <span>JavaScript</span><span>HTML/CSS</span><span>Cloudflare Workers</span><span>APIs</span><span>Game jams</span>
+        </div>
+      </div>
+      <div class="skills-col">
+        <h3>Photo</h3>
+        <div class="skill-tags">
+          <span>Mobile photography</span><span>Street</span><span>Editing</span><span>Film-inspired color</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="socials" class="reveal">
+    <div class="section-head"><h2>Socials</h2></div>
+    <div class="link-list">
+      <a href="https://youtube.com/@xliv3r" class="link-row" target="_blank" rel="noopener noreferrer">
+        <span class="t">YouTube — @xliv3r</span><span class="arrow">↗</span>
+      </a>
+    </div>
+  </section>
+
+  <section id="studio" class="reveal">
+    <div class="section-head"><h2>IdiotsWithKnifes</h2></div>
+
+    <div class="game-embed">
+      <iframe src="https://games.construct.net/78741/latest" allow="fullscreen; autoplay; encrypted-media" allowfullscreen="true" referrerpolicy="unsafe-url" sandbox="allow-same-origin allow-forms allow-scripts allow-pointer-lock allow-orientation-lock allow-popups" scrolling="no" loading="lazy" title="IdiotsWithKnifes — playable build"></iframe>
+    </div>
+    <p class="game-embed-caption">Playable build, embedded straight from Construct — no download needed.</p>
+
+    <div class="link-list" style="margin-top:18px;">
+      <a href="https://bsky.app/profile/idiots-with-knifes.itch.io" class="link-row" target="_blank" rel="noopener noreferrer">
+        <span class="t">Bluesky</span><span class="arrow">↗</span>
+      </a>
+      <a href="https://idiots-with-knifes.itch.io" class="link-row" target="_blank" rel="noopener noreferrer">
+        <span class="t">Itch.io</span><span class="arrow">↗</span>
+      </a>
+    </div>
+  </section>
+
+  <section id="admin-vault">
+    <div class="section-head"><h2 style="color:var(--void)">Void</h2></div>
+    <div class="link-list">
+      <a href="https://your-secret-link-1.com" class="link-row" target="_blank">
+        <span class="t">Secret Stash 1</span><span class="arrow">↗</span>
+      </a>
+      <a href="https://your-secret-link-2.com" class="link-row" target="_blank">
+        <span class="t">Secret Project</span><span class="arrow">↗</span>
+      </a>
+    </div>
+  </section>
+
+  <section id="contact" class="reveal">
+    <div class="section-head"><h2>Contact</h2></div>
+    <div class="contact-box">
+      <p>Easiest way to reach me — copy the email or hit up the socials above.</p>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <code id="contact-email">support@liversprojects.uk</code>
+        <button class="copy-btn" id="copy-email-btn" type="button">Copy</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+<div class="idle-whisper" id="idle-whisper"></div>
+<div class="disco-ball" id="disco-ball"></div>
+
+<footer>
+  &copy; Liver B — built and broken by hand
+  <div class="whisper" id="whisper"></div>
+</footer>
+
+<script src="/assets/site.js"></script>
+</body>
+</html>

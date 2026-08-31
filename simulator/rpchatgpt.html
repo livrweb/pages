@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Squarebound RPG</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111;font-family:system-ui,sans-serif;touch-action:none}
+#game{display:block;width:100%;height:100%;image-rendering:pixelated}
+#hud{position:fixed;top:10px;left:10px;z-index:5;color:white;text-shadow:2px 2px #000;pointer-events:none}
+#hpbox{width:190px;height:22px;border:3px solid #222;background:#511}
+#hp{height:100%;width:100%;background:#e33}
+#stats{margin-top:5px;font-weight:700}
+#hint{position:fixed;top:10px;right:10px;color:white;text-shadow:2px 2px #000;opacity:.8;font-size:13px;text-align:right}
+#attack{position:fixed;right:35px;bottom:42px;width:94px;height:94px;border-radius:50%;
+ border:4px solid #ddd;background:#9b2020cc;color:white;font-size:30px;font-weight:900;
+ box-shadow:0 5px 0 #451010;touch-action:none}
+#joy{position:fixed;left:28px;bottom:28px;width:150px;height:150px;border-radius:50%;
+ background:#ffffff20;border:3px solid #ffffff55;touch-action:none}
+#stick{position:absolute;left:50%;top:50%;width:68px;height:68px;margin:-34px;border-radius:50%;
+ background:#ffffff55;border:3px solid #ffffff88}
+#gameover{display:none;position:fixed;inset:0;z-index:10;background:#000b;color:white;
+ align-items:center;justify-content:center;flex-direction:column;font-size:28px;font-weight:900}
+#gameover button{font-size:18px;padding:12px 22px;margin-top:15px}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud"><div id="hpbox"><div id="hp"></div></div><div id="stats">Level 1 • XP 0/100</div></div>
+<div id="hint">Move with the joystick<br>Attack with ⚔</div>
+<div id="joy"><div id="stick"></div></div>
+<button id="attack">⚔</button>
+<div id="gameover"><div>You Died</div><button onclick="location.reload()">Respawn</button></div>
+
+<script>
+const c=document.getElementById('game'),ctx=c.getContext('2d');
+ctx.imageSmoothingEnabled=false;
+let W,H,DPR,camX=0,camY=0,last=performance.now();
+function resize(){DPR=devicePixelRatio||1;W=innerWidth;H=innerHeight;c.width=W*DPR;c.height=H*DPR;c.style.width=W+'px';c.style.height=H+'px';ctx.setTransform(DPR,0,0,DPR,0,0)}
+addEventListener('resize',resize);resize();
+
+function sqTex(draw,size=64){
+ const a=document.createElement('canvas');a.width=a.height=size;const x=a.getContext('2d');
+ draw(x,size); return a;
+}
+// All source textures are rendered into square canvases.
+const grass=sqTex((x,s)=>{x.fillStyle='#4c8739';x.fillRect(0,0,s,s);
+ for(let i=0;i<90;i++){x.fillStyle=i%3?'#376c2d':'#66a64a';let p=Math.random()*s,q=Math.random()*s;
+ x.fillRect(p,q,2,2)}});
+const dirt=sqTex((x,s)=>{x.fillStyle='#795331';x.fillRect(0,0,s,s);
+ for(let i=0;i<70;i++){x.fillStyle=i%2?'#624326':'#98683e';x.fillRect(Math.random()*s,Math.random()*s,3,2)}});
+const stone=sqTex((x,s)=>{x.fillStyle='#777';x.fillRect(0,0,s,s);
+ for(let i=0;i<20;i++){x.fillStyle=i%2?'#666':'#909090';x.fillRect(Math.random()*s,Math.random()*s,8,5)}});
+const tree=sqTex((x,s)=>{x.clearRect(0,0,s,s);x.fillStyle='#55351d';x.fillRect(27,33,11,26);
+ x.fillStyle='#245c2c';x.fillRect(12,14,40,30);x.fillStyle='#347c38';x.fillRect(19,7,28,31);
+ x.fillStyle='#4b9646';x.fillRect(27,13,13,12)});
+const textures={grass,dirt,stone,tree};
+
+const tile=64, mapW=40,mapH=40;
+let map=[];
+for(let y=0;y<mapH;y++){map[y]=[];for(let x=0;x<mapW;x++){
+ let v='grass'; if(x<2||y<2||x>mapW-3||y>mapH-3)v='stone';
+ if(Math.random()<.12 && x>2&&y>2&&x<mapW-3&&y<mapH-3)v='dirt';
+ map[y][x]=v;
+}}
+for(let i=0;i<35;i++){let x=3+Math.random()*(mapW-6),y=3+Math.random()*(mapH-6);
+ map[Math.floor(y)][Math.floor(x)]='tree';}
+
+const player={x:mapW*tile/2,y:mapH*tile/2,r:18,hp:100,max:100,level:1,xp:0,speed:190,atk:0,inv:0};
+let enemies=[];
+for(let i=0;i<12;i++) enemies.push({x:(5+Math.random()*30)*tile,y:(5+Math.random()*30)*tile,
+ r:17,hp:45,max:45,hit:0,dead:false});
+let particles=[];
+
+const joy=document.getElementById('joy'),stick=document.getElementById('stick');
+let joyId=null,jx=0,jy=0;
+function joyMove(e){
+ const r=joy.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+ let dx=e.clientX-cx,dy=e.clientY-cy,len=Math.hypot(dx,dy),max=55;
+ if(len>max){dx=dx/len*max;dy=dy/len*max}
+ jx=dx/max;jy=dy/max;stick.style.transform=`translate(${dx}px,${dy}px)`;
+}
+joy.addEventListener('pointerdown',e=>{joyId=e.pointerId;joy.setPointerCapture(e.pointerId);joyMove(e)});
+joy.addEventListener('pointermove',e=>{if(e.pointerId===joyId)joyMove(e)});
+function joyUp(e){if(e.pointerId===joyId){joyId=null;jx=jy=0;stick.style.transform='translate(0,0)'}}
+joy.addEventListener('pointerup',joyUp);joy.addEventListener('pointercancel',joyUp);
+
+let keys={};
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space')attack()});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+document.getElementById('attack').addEventListener('pointerdown',attack);
+
+function attack(){
+ if(player.atk>0)return;
+ player.atk=.32;
+ let dx=jx,dy=jy;
+ if(Math.hypot(dx,dy)<.2){dx=1;dy=0}
+ let len=Math.hypot(dx,dy);dx/=len;dy/=len;
+ for(const e of enemies) if(!e.dead){
+   let ex=e.x-player.x,ey=e.y-player.y,d=Math.hypot(ex,ey);
+   if(d<82 && (ex*dx+ey*dy)/Math.max(d,1)>.25){
+     e.hp-=25;e.hit=.16;
+     particles.push({x:e.x,y:e.y,t:.25,text:'-25'});
+     if(e.hp<=0){e.dead=true;player.xp+=25}
+   }
+ }
+}
+
+function update(dt){
+ let ax=jx,ay=jy;
+ if(keys.w||keys.arrowup)ay-=1;if(keys.s||keys.arrowdown)ay+=1;
+ if(keys.a||keys.arrowleft)ax-=1;if(keys.d||keys.arrowright)ax+=1;
+ let l=Math.hypot(ax,ay);if(l>1){ax/=l;ay/=l}
+ player.x+=ax*player.speed*dt;player.y+=ay*player.speed*dt;
+ player.x=Math.max(tile*2,Math.min(mapW*tile-tile*2,player.x));
+ player.y=Math.max(tile*2,Math.min(mapH*tile-tile*2,player.y));
+ player.atk=Math.max(0,player.atk-dt);player.inv=Math.max(0,player.inv-dt);
+
+ for(const e of enemies)if(!e.dead){
+   e.hit=Math.max(0,e.hit-dt);
+   let dx=player.x-e.x,dy=player.y-e.y,d=Math.hypot(dx,dy);
+   if(d<300&&d>48){e.x+=dx/d*42*dt;e.y+=dy/d*42*dt}
+   if(d<48&&player.inv<=0){player.hp-=10;player.inv=.55;particles.push({x:player.x,y:player.y,t:.25,text:'-10'})}
+ }
+ for(const p of particles){p.t-=dt;p.y-=25*dt} particles=particles.filter(p=>p.t>0);
+ if(player.xp>=100){player.level++;player.xp-=100;player.max+=15;player.hp=player.max;player.speed+=8}
+ if(player.hp<=0)document.getElementById('gameover').style.display='flex';
+ document.getElementById('hp').style.width=Math.max(0,player.hp/player.max*100)+'%';
+ document.getElementById('stats').textContent=`Level ${player.level} • XP ${player.xp}/100`;
+}
+
+function drawTex(img,x,y,size){ctx.drawImage(img,Math.floor(x),Math.floor(y),size,size)}
+function draw(){
+ ctx.clearRect(0,0,W,H);
+ camX=player.x-W/2;camY=player.y-H/2;
+ ctx.save();ctx.translate(-camX,-camY);
+ let sx=Math.floor(camX/tile)-1,sy=Math.floor(camY/tile)-1,ex=Math.ceil((camX+W)/tile)+1,ey=Math.ceil((camY+H)/tile)+1;
+ for(let y=Math.max(0,sy);y<Math.min(mapH,ey);y++)for(let x=Math.max(0,sx);x<Math.min(mapW,ex);x++)
+   drawTex(textures[map[y][x]],x*tile,y*tile,tile);
+
+ // trees get a subtle square shadow; enemies and player are drawn above terrain
+ for(const e of enemies)if(!e.dead){
+   ctx.fillStyle='#0006';ctx.beginPath();ctx.ellipse(e.x,e.y+14,22,9,0,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle=e.hit?'#fff':'#8d3030';ctx.fillRect(e.x-17,e.y-17,34,34);
+   ctx.fillStyle='#3b1717';ctx.fillRect(e.x-10,e.y-8,6,6);ctx.fillRect(e.x+5,e.y-8,6,6);
+   ctx.fillStyle='#222';ctx.fillRect(e.x-22,e.y-29,44,6);ctx.fillStyle='#e44';ctx.fillRect(e.x-21,e.y-28,42*e.hp/e.max,4);
+ }
+ ctx.fillStyle='#0005';ctx.beginPath();ctx.ellipse(player.x,player.y+17,25,10,0,0,Math.PI*2);ctx.fill();
+ if(player.inv%0.12<0.06) {
+   ctx.fillStyle='#2d63c8';ctx.fillRect(player.x-18,player.y-18,36,36);
+   ctx.fillStyle='#eac29a';ctx.fillRect(player.x-10,player.y-28,20,14);
+ }
+ // sword follows aim
+ let dx=jx,dy=jy;if(Math.hypot(dx,dy)<.2){dx=1;dy=0}let a=Math.atan2(dy,dx);
+ ctx.save();ctx.translate(player.x,player.y);ctx.rotate(a);
+ ctx.fillStyle='#ddd';ctx.fillRect(17,-4,42,8);ctx.fillStyle='#b78b45';ctx.fillRect(12,-12,8,24);ctx.fillStyle='#65431e';ctx.fillRect(0,-4,16,8);
+ if(player.atk>0){ctx.strokeStyle='#fff';ctx.lineWidth=5;ctx.beginPath();ctx.arc(0,0,63,-.75,.75);ctx.stroke()}
+ ctx.restore();
+
+ for(const p of particles){ctx.fillStyle='#fff';ctx.font='bold 18px sans-serif';ctx.fillText(p.text,p.x-12,p.y)}
+ ctx.restore();
+}
+function loop(t){let dt=Math.min(.033,(t-last)/1000);last=t;update(dt);draw();requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meme Simulator</title>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --panel: #16213e;
+            --accent: #0f3460;
+            --text: #e94560;
+            --btn: #e94560;
+            --btn-hover: #d23853;
+            --disabled: #555555;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: white;
+            margin: 0;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        h1 {
+            color: var(--text);
+            font-size: 3rem;
+            margin-top: 0;
+            margin-bottom: 40px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .layout {
+            display: flex;
+            gap: 30px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .clicker-section {
+            background-color: var(--panel);
+            border-radius: 20px;
+            padding: 40px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .shop-section {
+            background-color: var(--panel);
+            border-radius: 20px;
+            padding: 30px;
+            flex: 1.2;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .counter {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--text);
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .cps {
+            color: #aaaaaa;
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+        }
+
+        /* The Main Clickable Button */
+        .big-click-btn {
+            background-color: var(--btn);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 200px;
+            height: 200px;
+            font-size: 2rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: transform 0.1s;
+            box-shadow: 0 12px 0 #902035, 0 15px 20px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.1;
+            text-align: center;
+        }
+
+        .big-click-btn:active {
+            transform: translateY(12px);
+            box-shadow: 0 0 0 #902035, 0 5px 10px rgba(0,0,0,0.5);
+        }
+
+        /* Shop Elements */
+        .shop-header {
+            margin-top: 0;
+            border-bottom: 3px solid var(--accent);
+            padding-bottom: 15px;
+            font-size: 1.8rem;
+        }
+
+        .upgrade-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--accent);
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            transition: transform 0.2s;
+        }
+        
+        .upgrade-card:hover {
+            transform: translateX(5px);
+        }
+
+        .upgrade-info h3 {
+            margin: 0 0 5px 0;
+            font-size: 1.3rem;
+            color: white;
+        }
+
+        .upgrade-info p {
+            margin: 0;
+            font-size: 1rem;
+            color: #bbbbbb;
+        }
+
+        .upgrade-info .owned {
+            font-size: 0.9rem;
+            color: var(--text);
+            font-weight: bold;
+            margin-top: 4px;
+            display: block;
+        }
+
+        .buy-btn {
+            background-color: var(--btn);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            min-width: 120px;
+        }
+
+        .buy-btn:hover:not(:disabled) {
+            background-color: var(--btn-hover);
+        }
+
+        .buy-btn:disabled {
+            background-color: var(--disabled);
+            color: #999;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Floating numbers animation */
+        .floating-num {
+            position: absolute;
+            color: white;
+            font-size: 1.8rem;
+            font-weight: bold;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-80px) scale(1.2); }
+        }
+
+        @media (max-width: 768px) {
+            .layout { flex-direction: column; }
+            .big-click-btn { width: 160px; height: 160px; font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Meme Simulator</h1>
+
+    <div class="layout">
+        <!-- Main Clicker Area -->
+        <div class="clicker-section" id="clicker-area">
+            <div class="counter"><span id="count">0</span> Memes</div>
+            <div class="cps"><span id="cps">0</span> per second</div>
+            <button class="big-click-btn" id="main-btn">Get<br>Meme</button>
+        </div>
+
+        <!-- Shop Area -->
+        <div class="shop-section">
+            <h2 class="shop-header">Upgrades</h2>
+            
+            <div class="upgrade-card">
+                <div class="upgrade-info">
+                    <h3>Auto-Clicker</h3>
+                    <p>+1 Meme/sec</p>
+                    <span class="owned">Owned: <span id="owned-cursor">0</span></span>
+                </div>
+                <button class="buy-btn" id="btn-cursor" onclick="buy('cursor')"><span id="cost-cursor">15</span></button>
+            </div>
+            
+            <div class="upgrade-card">
+                <div class="upgrade-info">
+                    <h3>Meme Farm</h3>
+                    <p>+10 Memes/sec</p>
+                    <span class="owned">Owned: <span id="owned-farm">0</span></span>
+                </div>
+                <button class="buy-btn" id="btn-farm" onclick="buy('farm')"><span id="cost-farm">100</span></button>
+            </div>
+            
+            <div class="upgrade-card">
+                <div class="upgrade-info">
+                    <h3>Meme Factory</h3>
+                    <p>+100 Memes/sec</p>
+                    <span class="owned">Owned: <span id="owned-factory">0</span></span>
+                </div>
+                <button class="buy-btn" id="btn-factory" onclick="buy('factory')"><span id="cost-factory">1,100</span></button>
+            </div>
+
+            <div class="upgrade-card">
+                <div class="upgrade-info">
+                    <h3>Meme Universe</h3>
+                    <p>+1,000 Memes/sec</p>
+                    <span class="owned">Owned: <span id="owned-universe">0</span></span>
+                </div>
+                <button class="buy-btn" id="btn-universe" onclick="buy('universe')"><span id="cost-universe">12,000</span></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game State Variables
+        let count = 0;
+        let cps = 0; // Clicks per second
+        
+        // Define the shop upgrades
+        const upgrades = {
+            cursor:   { cost: 15, power: 1, owned: 0 },
+            farm:     { cost: 100, power: 10, owned: 0 },
+            factory:  { cost: 1100, power: 100, owned: 0 },
+            universe: { cost: 12000, power: 1000, owned: 0 }
+        };
+
+        // UI Element References
+        const countEl = document.getElementById('count');
+        const cpsEl = document.getElementById('cps');
+        const mainBtn = document.getElementById('main-btn');
+        const clickerArea = document.getElementById('clicker-area');
+
+        // Helper: Format numbers with commas
+        const fmt = (num) => Math.floor(num).toLocaleString();
+
+        // Main Click Event
+        mainBtn.addEventListener('click', (e) => {
+            count++;
+            updateUI();
+            createFloatingText(e);
+        });
+
+        // Function to handle purchases
+        function buy(id) {
+            const item = upgrades[id];
+            if (count >= item.cost) {
+                // Deduct cost and apply boosts
+                count -= item.cost;
+                cps += item.power;
+                item.owned += 1;
+                
+                // Increase cost exponentially (15% increase per level)
+                item.cost = Math.ceil(item.cost * 1.15);
+                
+                updateUI();
+            }
+        }
+
+        // Master UI Updater
+        function updateUI() {
+            // Update Headers
+            countEl.innerText = fmt(count);
+            cpsEl.innerText = fmt(cps);
+            
+            // Loop through upgrades to update their individual UI states
+            for (let id in upgrades) {
+                const item = upgrades[id];
+                const btn = document.getElementById('btn-' + id);
+                
+                // Update text
+                document.getElementById('cost-' + id).innerText = fmt(item.cost);
+                document.getElementById('owned-' + id).innerText = item.owned;
+                
+                // Toggle disabled state if we can't afford it
+                btn.disabled = count < item.cost;
+            }
+        }
+
+        // Visual Effect: Floating "+1" where you click
+        function createFloatingText(e) {
+            const floatEl = document.createElement('div');
+            floatEl.classList.add('floating-num');
+            floatEl.innerText = '+1';
+            
+            // Calculate position relative to the clicker area container
+            const rect = clickerArea.getBoundingClientRect();
+            
+            // If the event lacks coordinates (e.g., triggered by Spacebar), center it
+            let x = (e.clientX || (rect.left + rect.width / 2)) - rect.left;
+            let y = (e.clientY || (rect.top + rect.height / 2)) - rect.top;
+            
+            // Add a little randomization
+            x += (Math.random() - 0.5) * 40;
+            
+            floatEl.style.left = `${x}px`;
+            floatEl.style.top = `${y - 20}px`;
+            
+            clickerArea.appendChild(floatEl);
+            
+            // Cleanup DOM after animation finishes
+            setTimeout(() => {
+                floatEl.remove();
+            }, 1000);
+        }
+
+        // Game Loop: Runs 10 times a second for smooth visual incrementing
+        setInterval(() => {
+            if (cps > 0) {
+                count += cps / 10;
+                updateUI();
+            }
+        }, 100);
+
+        // Run an initial UI update to set starting button states
+        updateUI();
+    </script>
+</body>
+</html>
