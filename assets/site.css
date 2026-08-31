@@ -10,16 +10,16 @@
     --accent-dim: rgba(232,84,44,.14);
     --void: #c8341f;
   }
-  html[data-theme="daylight"]{
-    --bg: #f7f2e7;
-    --surface: #ffffff;
-    --surface-2: #f0e9d8;
-    --edge: #ddd2b8;
-    --text: #221d14;
-    --text-muted: #6d6250;
-    --accent: #c9481e;
-    --accent-dim: rgba(201,72,30,.10);
-    --void: #a4291a;
+  html[data-theme="purple"]{
+    --bg: #14101c;
+    --surface: #1d1728;
+    --surface-2: #251c34;
+    --edge: #3a2b52;
+    --text: #ece6f7;
+    --text-muted: #9884b3;
+    --accent: #a855f7;
+    --accent-dim: rgba(168,85,247,.14);
+    --void: #d63bd6;
   }
   html[data-theme="terminal"]{
     --bg: #050705;
@@ -66,7 +66,7 @@
     backdrop-filter:blur(8px);
     border-bottom:1px solid var(--edge);
   }
-  html[data-theme="daylight"] nav{ background:rgba(247,242,231,.86); }
+  html[data-theme="purple"] nav{ background:rgba(20,16,28,.86); }
   html[data-theme="terminal"] nav{ background:rgba(5,7,5,.86); }
 
   .scroll-progress{

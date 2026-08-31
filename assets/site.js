@@ -2,8 +2,8 @@
 // (theme switching, nav, easter eggs, gallery fetch, etc.)
 
 // --- THEME SWITCHER ---
-const themes = ['darkroom', 'daylight', 'terminal'];
-const themeLabels = { darkroom: 'Darkroom', daylight: 'Daylight', terminal: 'Terminal' };
+const themes = ['darkroom', 'purple', 'terminal'];
+const themeLabels = { darkroom: 'Darkroom', purple: 'Purple', terminal: 'Terminal' };
 const htmlEl = document.documentElement;
 const themeBtn = document.getElementById('theme-btn');
 const themeBtnMobile = document.getElementById('theme-btn-mobile');
@@ -540,8 +540,23 @@ document.addEventListener("DOMContentLoaded", () => {
   if (container || pfpElement) fetchLatestData(container, pfpElement);
 });
 
+// Google Photos share URLs sometimes come back from the Worker with a
+// stacked/duplicated size suffix (e.g. "...GDg=w54-h72-no=w1000-no-tmp"),
+// which Google's CDN rejects outright (NS_ERROR_DOM_NETWORK_ERR in Firefox,
+// a broken image in Chrome). Strip every "=w###-h###[-no][-tmp]" suffix and
+// re-append one clean one so the browser always gets a valid URL.
+function sanitizeGooglePhotoUrl(url) {
+  if (!url) return url;
+  return url.replace(/=w\d+(-h\d+)?(-no)?(-tmp)?/g, '') + '=w1000';
+}
+
 async function fetchLatestData(container, pfpElement) {
-  const WORKER_URL = 'https://photoapi.kcanada6031-6d9.workers.dev/';
+  let eggFound = false;
+  try { eggFound = localStorage.getItem('eggFound') === 'true'; } catch (e) {}
+
+  const WORKER_URL = eggFound
+    ? 'https://photoapi.kcanada6031-6d9.workers.dev/?egg=true'
+    : 'https://photoapi.kcanada6031-6d9.workers.dev/';
 
   try {
     const response = await fetch(WORKER_URL);
@@ -550,7 +565,7 @@ async function fetchLatestData(container, pfpElement) {
     const data = await response.json();
 
     if (data.pfpUrl && pfpElement) {
-      pfpElement.src = data.pfpUrl;
+      pfpElement.src = sanitizeGooglePhotoUrl(data.pfpUrl);
     }
 
     if (!container) return;
@@ -564,16 +579,17 @@ async function fetchLatestData(container, pfpElement) {
     }
 
     images.forEach(imgData => {
+      const cleanUrl = sanitizeGooglePhotoUrl(imgData.url);
       const item = document.createElement('div');
       item.className = 'gallery-item';
 
       const img = document.createElement('img');
-      img.src = imgData.url;
+      img.src = cleanUrl;
       img.alt = imgData.caption || 'Google Photos Update';
       img.loading = 'lazy';
       item.appendChild(img);
 
-      const urlMatch = imgData.url.match(/\/pw\/([a-zA-Z0-9\-_=]{20})/);
+      const urlMatch = cleanUrl.match(/\/pw\/([a-zA-Z0-9\-_=]{20})/);
       if (urlMatch && urlMatch[1]) {
         const snippetDiv = document.createElement('div');
         snippetDiv.className = 'admin-snippet';
@@ -584,7 +600,7 @@ async function fetchLatestData(container, pfpElement) {
       let finalCaption = imgData.caption;
       if (!finalCaption) {
         for (const urlSnippet in backupPhotoCaptions) {
-          if (imgData.url.includes(urlSnippet)) {
+          if (cleanUrl.includes(urlSnippet)) {
             finalCaption = backupPhotoCaptions[urlSnippet];
             break;
           }
@@ -598,7 +614,7 @@ async function fetchLatestData(container, pfpElement) {
         item.appendChild(captionDiv);
       }
 
-      item.addEventListener('click', () => openLightbox(imgData.url, finalCaption || ''));
+      item.addEventListener('click', () => openLightbox(cleanUrl, finalCaption || ''));
 
       container.appendChild(item);
     });
