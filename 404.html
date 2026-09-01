@@ -64,21 +64,10 @@
 
 <script>
 (function(){
-  // one of four ambient tracks plays behind the terminal, picked at random
-  // each time the page loads. two are files already used elsewhere on the
-  // site (spell.mp3, egg/egg.ogg) — adjust these two paths if you'd rather
-  // it pull from a different existing pair. keygen and gaster are hosted
-  // externally rather than as local files.
-  const TRACKS = [
-    'spell.mp3',
-    'egg/egg.ogg',
-    'https://t4.bcbits.com/stream/441347e0d89e69b03162c9f0c6771d5f/mp3-128/1307221412?p=0&ts=1788307682&t=755f039a3c106d68b3929989b25a766a4ed6d1e0&token=1788307682_1b9df4b029281ddbc16fb29f394f06e4a9b37c51',
-    'https://static.wikia.nocookie.net/tobyfox/images/a/a2/Mus_st_him.ogg/revision/latest?cb=20240815195331'
-  ];
-
+  // the 404 terminal plays the keygen track — fits the retro
+  // hacker/warez vibe of the "error terminal" better than the random pool.
   const terminalAudio = document.getElementById('terminal-audio');
-  const pick = TRACKS[Math.floor(Math.random() * TRACKS.length)];
-  terminalAudio.src = pick;
+  terminalAudio.src = 'https://t4.bcbits.com/stream/441347e0d89e69b03162c9f0c6771d5f/mp3-128/1307221412?p=0&ts=1788307682&t=755f039a3c106d68b3929989b25a766a4ed6d1e0&token=1788307682_1b9df4b029281ddbc16fb29f394f06e4a9b37c51';
 
   function tryAutoplay() {
     const p = terminalAudio.play();

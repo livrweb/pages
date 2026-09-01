@@ -141,8 +141,8 @@
 
   <div class="midi-bar">
     🎵 NOW PLAYING: track01.mid (authentic period-accurate audio)
-    <audio controls>
-      <source src="../spell.mp3" type="audio/mpeg">
+    <audio controls id="midi-audio">
+      <source id="midi-source" src="../egg/egg.ogg" type="audio/ogg">
       your browser doesn't support the &lt;audio&gt; tag, which is very 2003 of it.
     </audio>
   </div>
@@ -167,6 +167,21 @@
   }, 90);
 
   console.log('%cyou found the robots.txt route. respectable.', 'color:#39ff6a;font-family:monospace;');
+
+  // "authentic period-accurate audio" is actually one of four tracks,
+  // picked at random each load. spamton.ogg (bigshot's track) stands in
+  // for spell.mp3 here since spell.mp3 is doing its own thing elsewhere
+  // and keygen is reserved for the 404 terminal specifically.
+  const MIDI_TRACKS = [
+    '../egg/egg.ogg',
+    '../bigshot/spamton.ogg',
+    'https://t4.bcbits.com/stream/441347e0d89e69b03162c9f0c6771d5f/mp3-128/1307221412?p=0&ts=1788307682&t=755f039a3c106d68b3929989b25a766a4ed6d1e0&token=1788307682_1b9df4b029281ddbc16fb29f394f06e4a9b37c51',
+    'https://static.wikia.nocookie.net/tobyfox/images/a/a2/Mus_st_him.ogg/revision/latest?cb=20240815195331'
+  ];
+  const midiAudio = document.getElementById('midi-audio');
+  const midiSource = document.getElementById('midi-source');
+  midiSource.src = MIDI_TRACKS[Math.floor(Math.random() * MIDI_TRACKS.length)];
+  midiAudio.load();
 </script>
 </body>
 </html>
