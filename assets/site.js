@@ -557,9 +557,18 @@ document.addEventListener("DOMContentLoaded", () => {
 // on that would find nothing to strip but still tack "=w1000" onto the end,
 // producing a malformed URL that fails to load. So: bail out early for
 // anything that isn't the lh3 host.
+//
+// Also bail out if the URL already has a "?" query string — that's a sign
+// it's already a complete, ready-to-use URL (e.g. the egg-swap replacement
+// photos, which look like "...=w477-h634-s-no?authuser=0") rather than a
+// bare Google Photos ID that needs a size suffix appended. Running the
+// regex on one of those partially matches (it doesn't recognize the "-s-no"
+// shape) and then appends "=w1000" onto the end of the existing query
+// string, producing "...?authuser=0=w1000" — also malformed.
 function sanitizeGooglePhotoUrl(url) {
   if (!url) return url;
   if (!url.startsWith('https://lh3.googleusercontent.com/')) return url;
+  if (url.includes('?')) return url;
   return url.replace(/=w\d+(-h\d+)?(-no)?(-tmp)?/g, '') + '=w1000';
 }
 
