@@ -197,10 +197,10 @@ if (lightbox) {
     'he knows you found him.',
     "you're not alone here.",
     'he remembers you.',
-    "he's still under the tree."
-    "he's looking for freedom."
-    "he still wants to be a big shot."
-    "don't run."
+    "he's still under the tree.",
+    "he's looking for freedom.",
+    "he still wants to be a big shot.",
+    "don't run.",
     "don't look behind you."
   ];
   const whisper = document.getElementById('whisper');
