@@ -60,6 +60,46 @@
   <div class="hint">stuck? "help" lists commands. "home" gets you out of here.</div>
 </div>
 
+<audio id="terminal-audio" loop preload="none"></audio>
+
+<script>
+(function(){
+  // one of four ambient tracks plays behind the terminal, picked at random
+  // each time the page loads. two are files already used elsewhere on the
+  // site (spell.mp3, egg/egg.ogg) — adjust these two paths if you'd rather
+  // it pull from a different existing pair. keygen and gaster are hosted
+  // externally rather than as local files.
+  const TRACKS = [
+    'spell.mp3',
+    'egg/egg.ogg',
+    'https://t4.bcbits.com/stream/441347e0d89e69b03162c9f0c6771d5f/mp3-128/1307221412?p=0&ts=1788307682&t=755f039a3c106d68b3929989b25a766a4ed6d1e0&token=1788307682_1b9df4b029281ddbc16fb29f394f06e4a9b37c51',
+    'https://static.wikia.nocookie.net/tobyfox/images/a/a2/Mus_st_him.ogg/revision/latest?cb=20240815195331'
+  ];
+
+  const terminalAudio = document.getElementById('terminal-audio');
+  const pick = TRACKS[Math.floor(Math.random() * TRACKS.length)];
+  terminalAudio.src = pick;
+
+  function tryAutoplay() {
+    const p = terminalAudio.play();
+    if (p && p.catch) {
+      p.catch(() => {
+        // autoplay-with-sound blocked until a real gesture — the terminal
+        // already focuses its input and listens for clicks, so the first
+        // keystroke or click anywhere starts it.
+        const startOnce = () => {
+          terminalAudio.play().catch(() => {});
+          document.removeEventListener('click', startOnce);
+          document.removeEventListener('keydown', startOnce);
+        };
+        document.addEventListener('click', startOnce, { once: true });
+        document.addEventListener('keydown', startOnce, { once: true });
+      });
+    }
+  }
+  tryAutoplay();
+})();
+</script>
 <script>
 (function(){
   const body = document.getElementById('crt-body');

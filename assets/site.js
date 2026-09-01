@@ -545,8 +545,16 @@ document.addEventListener("DOMContentLoaded", () => {
 // which Google's CDN rejects outright (NS_ERROR_DOM_NETWORK_ERR in Firefox,
 // a broken image in Chrome). Strip every "=w###-h###[-no][-tmp]" suffix and
 // re-append one clean one so the browser always gets a valid URL.
+//
+// This ONLY applies to lh3.googleusercontent.com (Google Photos) URLs. The
+// YouTube avatar (yt3.googleusercontent.com) uses a different suffix scheme
+// entirely (e.g. "=s900-c-k-c0x00ffffff-no-rj") — running this same regex
+// on that would find nothing to strip but still tack "=w1000" onto the end,
+// producing a malformed URL that fails to load. So: bail out early for
+// anything that isn't the lh3 host.
 function sanitizeGooglePhotoUrl(url) {
   if (!url) return url;
+  if (!url.startsWith('https://lh3.googleusercontent.com/')) return url;
   return url.replace(/=w\d+(-h\d+)?(-no)?(-tmp)?/g, '') + '=w1000';
 }
 
