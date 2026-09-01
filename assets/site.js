@@ -392,11 +392,27 @@ document.addEventListener('keydown', (e) => {
 
 // --- party / rave ---
 let partyActive = false;
+const partyAudio = new Audio('https://t4.bcbits.com/stream/441347e0d89e69b03162c9f0c6771d5f/mp3-128/1307221412?p=0&ts=1788307682&t=755f039a3c106d68b3929989b25a766a4ed6d1e0&token=1788307682_1b9df4b029281ddbc16fb29f394f06e4a9b37c51');
+
+// Optional: loop audio while party mode is on
+partyAudio.loop = true;
+
 function togglePartyMode() {
   partyActive = !partyActive;
   document.body.classList.toggle('party-mode', partyActive);
+  
   const disco = document.getElementById('disco-ball');
   if (disco) disco.classList.toggle('show', partyActive);
+
+  if (partyActive) {
+    partyAudio.play().catch((err) => {
+      console.warn('Audio playback failed or was blocked by browser policy:', err);
+    });
+  } else {
+    partyAudio.pause();
+    partyAudio.currentTime = 0; // Resets track to beginning
+  }
+
   showToast(partyActive ? "it's a party." : 'party over. lights on.');
 }
 
