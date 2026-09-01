@@ -328,6 +328,7 @@ const codeWatchers = [
   { code: 'adminpasswordlmao', action: unlockVoid },
 
   { code: 'egg', action: () => { window.location.href = '/egg/'; } },
+  { code: 'bigshot', action: () => { window.location.href = '/bigshot/'; } },
 
   { code: 'party', typoTolerant: true, action: () => togglePartyMode() },
   { code: 'rave', typoTolerant: true, action: () => togglePartyMode() },
