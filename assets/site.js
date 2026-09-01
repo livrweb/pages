@@ -400,14 +400,8 @@ partyAudio.loop = true;
 function togglePartyMode() {
   partyActive = !partyActive;
   document.body.classList.toggle('party-mode', partyActive);
-  
   const disco = document.getElementById('disco-ball');
   if (disco) disco.classList.toggle('show', partyActive);
-
-  if (partyActive) {
-  } else {
-  }
-
   showToast(partyActive ? "it's a party." : 'party over. lights on.');
 }
 
@@ -544,7 +538,6 @@ console.log('%cLooking for the source? It is right here — view-source is right
 // --- BACKUP CAPTION DICTIONARY ---
 const backupPhotoCaptions = {
   "AP1GczObmw5Uy_FA1FyPL": "Took downtown Rochester NY",
-  "AP1GczPHMyF8zrcPZcste": "Caught at lakeside diner"
   "AP1GczPHMyF8zrcPZcste": "Caught at lakeside diner",
   "AP1GczMeIrqT8_uNV4K_RxhM": "Boat in Sodus NY"
 };
