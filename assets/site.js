@@ -405,12 +405,7 @@ function togglePartyMode() {
   if (disco) disco.classList.toggle('show', partyActive);
 
   if (partyActive) {
-    partyAudio.play().catch((err) => {
-      console.warn('Audio playback failed or was blocked by browser policy:', err);
-    });
   } else {
-    partyAudio.pause();
-    partyAudio.currentTime = 0; // Resets track to beginning
   }
 
   showToast(partyActive ? "it's a party." : 'party over. lights on.');
@@ -550,6 +545,8 @@ console.log('%cLooking for the source? It is right here — view-source is right
 const backupPhotoCaptions = {
   "AP1GczObmw5Uy_FA1FyPL": "Took downtown Rochester NY",
   "AP1GczPHMyF8zrcPZcste": "Caught at lakeside diner"
+  "AP1GczPHMyF8zrcPZcste": "Caught at lakeside diner",
+  "AP1GczMeIrqT8_uNV4K_RxhM": "Boat in Sodus NY"
 };
 
 // fetchLatestData powers both the hero profile photo (home page) and the
