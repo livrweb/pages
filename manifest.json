@@ -22,5 +22,11 @@
     }
   ],
   "lang": "en-US",
-  "dir": "ltr"
+  "dir": "ltr",
+  "display_override": [
+    "window-controls-overlay",
+    "fullscreen",
+    "minimal-ui",
+    "standalone"
+  ]
 }
