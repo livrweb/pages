@@ -1,0 +1,26 @@
+{
+  "name": "Slime Knight",
+  "short_name": "SlimeKnight",
+  "description": "An epic adventure of a bouncy hero in armor.",
+  "start_url": "/",
+  "id": "/slime-knight-game",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#2d3436",
+  "theme_color": "#55efc4",
+  "categories": [
+    "game",
+    "adventure",
+    "action"
+  ],
+  "icons": [
+    {
+      "src": "index.icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "lang": "en-US",
+  "dir": "ltr"
+}
