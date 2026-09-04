@@ -2,12 +2,13 @@
   "name": "Slime Knight",
   "short_name": "SlimeKnight",
   "description": "An epic adventure of a bouncy hero in armor.",
-  "start_url": "/",
-  "id": "/slime-knight-game",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "./",
   "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#2d3436",
-  "theme_color": "#55efc4",
+  "theme_color": "#2d3436",
   "categories": [
     "game",
     "adventure",
@@ -18,7 +19,13 @@
       "src": "index.icon.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "lang": "en-US",
