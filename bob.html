@@ -18,7 +18,6 @@
             display: flex;
             width: max-content; 
             height: 100vh;
-            /* Increased from 10s to 30s to slow down the movement */
             animation: pan-horizontal 30s linear infinite;
         }
 
@@ -32,9 +31,9 @@
             image-rendering: pixelated;
         }
 
-        /* Fallback text styling if the image path is wrong */
+        /* Generic fallback text for the live website */
         .scrolling-wrapper::before {
-            content: "Image not found! Move loop.png into C:/Users/amand/Downloads/";
+            content: "Image not found! Ensure loop.png is uploaded to the same folder as this HTML file.";
             position: absolute;
             top: 50%;
             left: 20px;
