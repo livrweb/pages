@@ -2,17 +2,23 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>bob and his frens</title>
     <style>
-        body {
+        /* Applied to both html and body to strictly lock the viewport */
+        html, body {
             margin: 0;
             padding: 0;
             background-color: #a3d9e8; 
             height: 100vh;
             width: 100vw;
             overflow: hidden; 
-            /* Changes the cursor to a pointer to hint that the screen is clickable */
+            
+            /* Prevents mobile pull-to-refresh, pinch-zoom, and swipe scrolling */
+            touch-action: none; 
+            /* Locks the body in place to stop bounce scrolling (rubber-banding) */
+            position: fixed; 
+            
             cursor: pointer; 
         }
 
@@ -31,6 +37,12 @@
             image-rendering: -webkit-optimize-contrast;
             image-rendering: crisp-edges;
             image-rendering: pixelated;
+            
+            /* Stops users from accidentally dragging or highlighting the image */
+            user-select: none;
+            -webkit-user-drag: none;
+            /* Ensures clicks always register on the background to start the music */
+            pointer-events: none; 
         }
 
         .scrolling-wrapper::before {
@@ -53,22 +65,25 @@
 <body>
 
     <div class="scrolling-wrapper">
-        <img src="loop.png" alt="">
-        <img src="loop.png" alt="">
+        <img src="loop.png" alt="" draggable="false">
+        <img src="loop.png" alt="" draggable="false">
     </div>
 
-    <!-- Removed the unreliable 'autoplay' tag and added an ID for the script to find -->
     <audio id="bg-music" src="bob.mp3" loop></audio>
 
     <script>
         // Listens for a click or tap anywhere on the screen
         document.body.addEventListener('click', function() {
             var audio = document.getElementById('bg-music');
-            // If the music is currently paused, play it
             if (audio.paused) {
                 audio.play();
             }
         });
+        
+        // Secondary safeguard to block touch-move scrolling on older mobile browsers
+        document.body.addEventListener('touchmove', function(event) {
+            event.preventDefault();
+        }, { passive: false });
     </script>
 
 </body>
