@@ -56,5 +56,32 @@
         <img src="loop.png" alt="">
     </div>
 
+    <!-- Hidden audio player set to autoplay and loop -->
+    <audio src="bob.mp3" autoplay loop></audio>
+
+</body>
+</html>
+            position: absolute;
+            top: 50%;
+            left: 20px;
+            font-family: sans-serif;
+            font-size: 24px;
+            color: black;
+            z-index: -1;
+        }
+
+        @keyframes pan-horizontal {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scrolling-wrapper">
+        <img src="loop.png" alt="">
+        <img src="loop.png" alt="">
+    </div>
+
 </body>
 </html>
