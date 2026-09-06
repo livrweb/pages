@@ -41,7 +41,7 @@
             /* Stops users from accidentally dragging or highlighting the image */
             user-select: none;
             -webkit-user-drag: none;
-            /* Ensures clicks always register on the background to start the music */
+            /* Ensures clicks always register on the background to start/stop the music */
             pointer-events: none; 
         }
 
@@ -75,8 +75,12 @@
         // Listens for a click or tap anywhere on the screen
         document.body.addEventListener('click', function() {
             var audio = document.getElementById('bg-music');
+            
+            // Toggles play and pause states
             if (audio.paused) {
                 audio.play();
+            } else {
+                audio.pause();
             }
         });
         
