@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LRC Maker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#131217;
+    --surface:#1b1a20;
+    --surface-2:#232128;
+    --surface-recess:#19181d;
+    --border:#332f38;
+    --text:#EDEAE3;
+    --text-dim:#8b8894;
+    --text-faint:#57545e;
+    --amber:#E8A33D;
+    --amber-soft:#c98a2f;
+    --amber-glow:rgba(232,163,61,.45);
+    --red:#D6584A;
+    --radius-lg:18px;
+    --radius-md:12px;
+    --radius-sm:8px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--text);}
+  body{
+    font-family:'Manrope', system-ui, sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important; animation:none !important;}
+  }
+
+  .app{
+    width:100%;
+    max-width:480px;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(232,163,61,.06), transparent 45%),
+      var(--bg);
+  }
+
+  /* ---------- header ---------- */
+  header{
+    padding:20px 20px 14px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-shrink:0;
+  }
+  .brand{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+  .brand .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    color:var(--amber);
+    font-weight:600;
+  }
+  .brand h1{
+    margin:0;
+    font-size:19px;
+    font-weight:800;
+    letter-spacing:-.01em;
+  }
+  .steps{
+    display:flex;
+    gap:6px;
+  }
+  .step-dot{
+    width:22px; height:22px;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    font-weight:600;
+    border:1px solid var(--border);
+    color:var(--text-faint);
+    background:var(--surface);
+  }
+  .step-dot.done{ color:var(--bg); background:var(--amber-soft); border-color:var(--amber-soft); }
+  .step-dot.active{ color:var(--bg); background:var(--amber); border-color:var(--amber); box-shadow:0 0 0 3px var(--amber-glow); }
+
+  main{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    padding:0 20px 24px;
+    overflow-y:auto;
+  }
+
+  .screen{ display:none; flex-direction:column; gap:18px; animation:fade .25s ease; }
+  .screen.active{ display:flex; }
+  @keyframes fade{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  /* ---------- generic field styling ---------- */
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field label{
+    font-size:12px;
+    font-weight:600;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    letter-spacing:.06em;
+  }
+  .field input[type="text"], .field textarea{
+    width:100%;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    color:var(--text);
+    padding:12px 14px;
+    font-family:'Manrope', sans-serif;
+    font-size:15px;
+    outline:none;
+  }
+  .field input[type="text"]:focus, .field textarea:focus{
+    border-color:var(--amber);
+    box-shadow:0 0 0 3px var(--amber-glow);
+  }
+  .field textarea{
+    resize:vertical;
+    min-height:140px;
+    line-height:1.5;
+  }
+  .hint{ font-size:12.5px; color:var(--text-faint); line-height:1.4; }
+
+  .row-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+  /* file picker */
+  .file-picker{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:var(--surface);
+    border:1px dashed var(--border);
+    border-radius:var(--radius-md);
+    padding:14px;
+    cursor:pointer;
+  }
+  .file-picker:focus-within{ border-color:var(--amber); box-shadow:0 0 0 3px var(--amber-glow); }
+  .file-picker input{ display:none; }
+  .file-picker .icon{
+    width:38px; height:38px; border-radius:50%;
+    background:var(--surface-2);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+    color:var(--amber);
+  }
+  .file-picker .meta{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .file-picker .meta strong{ font-size:14px; font-weight:700; }
+  .file-picker .meta span{ font-size:12.5px; color:var(--text-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  /* toggle switch */
+  .switch{ position:relative; display:inline-block; width:46px; height:27px; flex-shrink:0; }
+  .switch input{ opacity:0; width:0; height:0; position:absolute; }
+  .switch-track{
+    position:absolute; inset:0;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:99px;
+    transition:background .15s ease, border-color .15s ease;
+    cursor:pointer;
+  }
+  .switch-thumb{
+    position:absolute;
+    top:2px; left:2px;
+    width:21px; height:21px;
+    border-radius:50%;
+    background:var(--text-dim);
+    transition:transform .15s ease, background .15s ease;
+  }
+  .switch input:checked + .switch-track{ background:rgba(232,163,61,.25); border-color:var(--amber); }
+  .switch input:checked + .switch-track .switch-thumb{ transform:translateX(19px); background:var(--amber); }
+  .switch input:focus-visible + .switch-track{ box-shadow:0 0 0 3px var(--amber-glow); }
+
+  .toggle-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:14px;
+  }
+  .toggle-row .toggle-copy label{
+    text-transform:none;
+    font-size:14.5px;
+    font-weight:700;
+    color:var(--text);
+    letter-spacing:0;
+    display:block;
+    margin-bottom:2px;
+  }
+  .toggle-row .toggle-copy p{ margin:0; }
+
+  .mode-toggle{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:2px 4px;
+  }
+  .mode-toggle span{
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    letter-spacing:.06em;
+  }
+
+  .tag-sticky-header{
+    position:sticky;
+    top:0;
+    z-index:6;
+    background:var(--bg);
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    padding:2px 0 14px;
+    box-shadow:0 14px 14px -14px rgba(0,0,0,.55);
+  }
+
+  /* buttons */
+  button{ font-family:'Manrope', sans-serif; border:none; cursor:pointer; }
+  .btn-primary{
+    background:var(--amber);
+    color:#1b1206;
+    font-weight:800;
+    font-size:15px;
+    padding:15px 18px;
+    border-radius:var(--radius-md);
+    letter-spacing:.01em;
+    transition:transform .08s ease, box-shadow .15s ease;
+  }
+  .btn-primary:active{ transform:scale(.98); }
+  .btn-primary:disabled{ background:var(--surface-2); color:var(--text-faint); cursor:not-allowed; }
+  .btn-ghost{
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--text-dim);
+    font-weight:700;
+    font-size:14px;
+    padding:12px 16px;
+    border-radius:var(--radius-md);
+  }
+  .btn-ghost:active{ background:var(--surface-2); }
+
+  /* ---------- LCD counter (signature element) ---------- */
+  .lcd{
+    background:var(--surface-recess);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:18px 20px;
+    box-shadow:inset 0 2px 10px rgba(0,0,0,.55);
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+  }
+  .lcd::before, .lcd::after{
+    content:"";
+    position:absolute;
+    top:50%; transform:translateY(-50%);
+    width:10px; height:10px;
+    border-radius:50%;
+    border:2px solid var(--border);
+    background:var(--bg);
+  }
+  .lcd::before{ left:14px; }
+  .lcd::after{ right:14px; }
+  .lcd .song-meta{
+    font-size:12.5px;
+    color:var(--text-dim);
+    font-weight:600;
+    text-align:center;
+    max-width:80%;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .lcd .digits{
+    font-family:'JetBrains Mono', monospace;
+    font-size:2.5rem;
+    font-weight:600;
+    color:var(--amber);
+    letter-spacing:.03em;
+    text-shadow:0 0 18px var(--amber-glow);
+    line-height:1;
+  }
+  .lcd .digits .sep{ opacity:.55; }
+  .lcd .duration{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--text-faint);
+  }
+
+  /* scrubber */
+  .scrubber{
+    -webkit-appearance:none;
+    appearance:none;
+    width:100%;
+    height:6px;
+    border-radius:99px;
+    background:var(--surface-2);
+    outline:none;
+  }
+  .scrubber::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:18px; height:18px;
+    border-radius:50%;
+    background:var(--amber);
+    border:3px solid var(--bg);
+    box-shadow:0 0 0 1px var(--amber);
+    margin-top:0;
+    cursor:pointer;
+  }
+  .scrubber::-moz-range-thumb{
+    width:18px; height:18px; border-radius:50%;
+    background:var(--amber); border:3px solid var(--bg);
+    box-shadow:0 0 0 1px var(--amber);
+    cursor:pointer;
+  }
+
+  .transport{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:22px;
+  }
+  .transport button{
+    background:var(--surface);
+    border:1px solid var(--border);
+    color:var(--text);
+    width:46px; height:46px;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .transport button:active{ background:var(--surface-2); }
+  .transport .play-pause{
+    width:58px; height:58px;
+    background:var(--amber);
+    color:#1b1206;
+    border-color:var(--amber);
+  }
+  .transport svg{ width:18px; height:18px; }
+
+  /* lyric list */
+  .list-label{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    font-size:12px;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    font-weight:600;
+  }
+  .list-label span.count{ font-family:'JetBrains Mono', monospace; color:var(--amber); text-transform:none; letter-spacing:0; }
+
+  .lyric-list{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    padding-bottom:110px; /* room for fixed bar */
+  }
+  .lyric-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:12px 14px;
+    border-radius:var(--radius-md);
+    background:var(--surface);
+    border:1px solid transparent;
+  }
+  .lyric-row .idx{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    color:var(--text-faint);
+    width:20px;
+    flex-shrink:0;
+  }
+  .lyric-row .txt{
+    flex:1;
+    font-size:14.5px;
+    color:var(--text-dim);
+    min-width:0;
+    overflow-wrap:break-word;
+  }
+  .lyric-row .stamp{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--text-faint);
+    flex-shrink:0;
+  }
+  .lyric-row.tagged .stamp{ color:var(--amber); }
+  .lyric-row.tagged .txt{ color:var(--text); }
+  .lyric-row.active{
+    background:rgba(232,163,61,.1);
+    border-color:var(--amber);
+  }
+  .lyric-row.active .txt{ color:var(--text); font-weight:700; }
+
+  .lyric-row.playing{
+    border-left:3px solid var(--amber);
+    padding-left:11px;
+  }
+
+  .word{
+    display:inline-flex;
+    align-items:center;
+    padding:5px 10px;
+    border-radius:8px;
+    background:var(--surface-2);
+    border:1px solid transparent;
+    color:var(--text-dim);
+    font-size:14px;
+    line-height:1.3;
+    cursor:pointer;
+    transition:background .12s ease, color .12s ease, transform .06s ease, border-color .12s ease;
+  }
+  .word:active{ transform:scale(.93); }
+  .word.tagged{ background:rgba(232,163,61,.14); color:var(--text); border-color:rgba(232,163,61,.3); }
+  .word.current{ border-color:var(--amber); box-shadow:0 0 0 2px var(--amber-glow) inset; font-weight:700; }
+  .word.playing{ background:var(--amber); color:#1b1206; border-color:var(--amber); }
+  .word-row{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .lyric-row:has(.word-row){ align-items:flex-start; }
+  .lyric-row:has(.word-row) .idx{ margin-top:6px; }
+  .lyric-row:has(.word-row) .stamp{ margin-top:6px; }
+
+  /* fixed bottom bar (tag screen) */
+  .tag-bar{
+    position:fixed;
+    left:50%; transform:translateX(-50%);
+    bottom:0;
+    width:100%;
+    max-width:480px;
+    padding:14px 20px calc(16px + var(--safe-bottom));
+    background:linear-gradient(180deg, transparent, var(--bg) 30%);
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .tag-bar .undo-btn{
+    width:48px; height:48px;
+    border-radius:50%;
+    background:var(--surface);
+    border:1px solid var(--border);
+    color:var(--text-dim);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .tag-bar .undo-btn:disabled{ opacity:.4; }
+  .tag-bar .tag-btn{
+    flex:1;
+    height:58px;
+    border-radius:29px;
+    background:var(--amber);
+    color:#1b1206;
+    font-weight:800;
+    font-size:16px;
+    letter-spacing:.03em;
+    display:flex; align-items:center; justify-content:center;
+    gap:8px;
+    box-shadow:0 8px 24px -6px var(--amber-glow);
+  }
+  .tag-bar .tag-btn:active{ transform:scale(.98); }
+  .tag-bar .tag-btn:disabled{ background:var(--surface-2); color:var(--text-faint); box-shadow:none; }
+  .tag-bar .finish-btn{
+    width:52px; height:52px;
+    border-radius:50%;
+    background:var(--surface);
+    border:1px solid var(--border);
+    color:var(--amber);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+
+  /* export screen */
+  .summary{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:14px 16px;
+  }
+  .summary .big{
+    font-family:'JetBrains Mono', monospace;
+    font-size:22px;
+    font-weight:700;
+    color:var(--amber);
+  }
+  .summary .lbl{ font-size:12px; color:var(--text-dim); }
+  .summary.warn .big{ color:var(--red); }
+
+  .lrc-output{
+    width:100%;
+    min-height:220px;
+    background:var(--surface-recess);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    color:var(--amber);
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    line-height:1.7;
+    padding:14px;
+    resize:vertical;
+    outline:none;
+  }
+  .lrc-output:focus{ border-color:var(--amber); }
+
+  .export-actions{ display:flex; gap:10px; }
+  .export-actions .btn-primary{ flex:1; display:flex; align-items:center; justify-content:center; gap:8px; }
+
+  /* toast */
+  .toast{
+    position:fixed;
+    left:50%; bottom:24px;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    font-size:13px;
+    font-weight:600;
+    padding:10px 16px;
+    border-radius:99px;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s ease, transform .2s ease;
+    z-index:20;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  ::selection{ background:var(--amber-glow); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="brand">
+      <span class="eyebrow">◆ LRC MAKER</span>
+      <h1>Sync your lyrics</h1>
+    </div>
+    <div class="steps" id="stepDots">
+      <div class="step-dot active" data-step="0">1</div>
+      <div class="step-dot" data-step="1">2</div>
+      <div class="step-dot" data-step="2">3</div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- SCREEN 1: SETUP -->
+    <section class="screen active" id="screen-setup">
+      <label class="file-picker" for="audioFile">
+        <span class="icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        </span>
+        <span class="meta">
+          <strong id="fileLabel">Choose an audio file</strong>
+          <span id="fileSub">MP3, M4A, WAV — stays on this device</span>
+        </span>
+        <input type="file" id="audioFile" accept="audio/*">
+      </label>
+
+      <div class="row-2">
+        <div class="field">
+          <label for="titleInput">Title</label>
+          <input type="text" id="titleInput" placeholder="Song title">
+        </div>
+        <div class="field">
+          <label for="artistInput">Artist</label>
+          <input type="text" id="artistInput" placeholder="Artist">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="albumInput">Album <span style="text-transform:none; font-weight:400; color:var(--text-faint);">(optional)</span></label>
+        <input type="text" id="albumInput" placeholder="Album">
+      </div>
+
+      <div class="field">
+        <label for="syncedByInput">Synced by <span style="text-transform:none; font-weight:400; color:var(--text-faint);">(optional — remembered on this device)</span></label>
+        <input type="text" id="syncedByInput" placeholder="Your name">
+      </div>
+
+      <div class="toggle-row">
+        <div class="toggle-copy">
+          <label for="wordModeToggle">Word-by-word timing</label>
+          <p class="hint">Tag every word instead of one stamp per line — for karaoke-style playback.</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="wordModeToggle">
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+        </label>
+      </div>
+
+      <div class="field">
+        <label for="lyricsInput">Lyrics</label>
+        <textarea id="lyricsInput" placeholder="Paste the lyrics here, one line per row.
+
+Verse and chorus lines all go in the same box —
+you'll tap through them in order on the next screen."></textarea>
+        <p class="hint">Each line becomes one synced row. Blank lines are skipped automatically.</p>
+      </div>
+
+      <button class="btn-primary" id="startBtn" disabled>Start tagging</button>
+    </section>
+
+    <!-- SCREEN 2: TAG -->
+    <section class="screen" id="screen-tag">
+      <div class="tag-sticky-header" id="tagStickyHeader">
+        <div class="lcd">
+          <span class="song-meta" id="lcdMeta">—</span>
+          <div class="digits"><span id="lcdTime">00:00.00</span></div>
+          <span class="duration" id="lcdDuration">of 00:00</span>
+          <input type="range" class="scrubber" id="scrubber" min="0" max="1000" value="0" style="margin-top:4px;">
+        </div>
+
+        <div class="mode-toggle">
+          <span>Word-by-word</span>
+          <label class="switch">
+            <input type="checkbox" id="wordModeToggleTag">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </label>
+        </div>
+
+        <div class="transport">
+          <button id="backBtn" aria-label="Back 5 seconds">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 6V2L5 8l6 6v-4c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6H5c0 4.4 3.6 8 8 8s8-3.6 8-8-3.6-8-8-8z"/></svg>
+          </button>
+          <button class="play-pause" id="playBtn" aria-label="Play">
+            <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <svg id="pauseIcon" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+          </button>
+          <button id="fwdBtn" aria-label="Forward 5 seconds">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 6V2l6 6-6 6v-4c-3.3 0-6 2.7-6 6s2.7 6 6 6 6-2.7 6-6h2c0 4.4-3.6 8-8 8s-8-3.6-8-8 3.6-8 8-8z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="list-label">
+        <span id="listLabelText">Lyric lines</span>
+        <span class="count" id="taggedCount">0 / 0 tagged</span>
+      </div>
+
+      <div class="lyric-list" id="lyricList"></div>
+    </section>
+
+    <!-- SCREEN 3: EXPORT -->
+    <section class="screen" id="screen-export">
+      <div class="summary" id="exportSummary">
+        <div>
+          <div class="lbl">Lines synced</div>
+          <div class="big" id="summaryCount">0 / 0</div>
+        </div>
+        <button class="btn-ghost" id="backToTagBtn">Back to tagging</button>
+      </div>
+
+      <div class="field">
+        <label for="lrcOutput">.LRC file contents</label>
+        <textarea class="lrc-output" id="lrcOutput" spellcheck="false"></textarea>
+        <p class="hint">Edit directly here if you need to tweak a line before saving.</p>
+      </div>
+
+      <div class="export-actions">
+        <button class="btn-primary" id="copyBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copy
+        </button>
+        <button class="btn-primary" id="downloadBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
+          Download .lrc
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="tag-bar" id="tagBar" style="display:none;">
+    <button class="undo-btn" id="undoBtn" disabled aria-label="Undo last tag">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M3 13a9 9 0 1 0 3-6.7L3 9"/></svg>
+    </button>
+    <button class="tag-btn" id="tagBtn" disabled>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg>
+      <span id="tagBtnLabel">TAG THIS LINE</span>
+    </button>
+    <button class="finish-btn" id="finishBtn" aria-label="Go to export">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </div>
+
+  <audio id="audio"></audio>
+  <div class="toast" id="toast"></div>
+
+</div>
+
+<script>
+(function(){
+  // ---------- state ----------
+  let lines = [];          // {text, units:[word,...], unitTimes:[null|number,...]}
+  let activeLine = 0;
+  let activeUnit = 0;
+  let history = [];        // stack of {line, unit}, for undo
+  let objectUrl = null;
+  let isPlaying = false;
+  let playingUnit = null;  // {line, unit} currently sounding, based on playback position
+  let wordMode = false;
+
+  const SYNCED_BY_KEY = 'lrcMaker.syncedBy';
+
+  // ---------- elements ----------
+  const audio = document.getElementById('audio');
+  const audioFile = document.getElementById('audioFile');
+  const fileLabel = document.getElementById('fileLabel');
+  const fileSub = document.getElementById('fileSub');
+  const titleInput = document.getElementById('titleInput');
+  const artistInput = document.getElementById('artistInput');
+  const albumInput = document.getElementById('albumInput');
+  const syncedByInput = document.getElementById('syncedByInput');
+  const wordModeToggle = document.getElementById('wordModeToggle');
+  const lyricsInput = document.getElementById('lyricsInput');
+  const startBtn = document.getElementById('startBtn');
+
+  const screens = {
+    setup: document.getElementById('screen-setup'),
+    tag: document.getElementById('screen-tag'),
+    export: document.getElementById('screen-export'),
+  };
+  const stepDots = document.querySelectorAll('.step-dot');
+  const tagBar = document.getElementById('tagBar');
+
+  const lcdMeta = document.getElementById('lcdMeta');
+  const lcdTime = document.getElementById('lcdTime');
+  const lcdDuration = document.getElementById('lcdDuration');
+  const scrubber = document.getElementById('scrubber');
+  const wordModeToggleTag = document.getElementById('wordModeToggleTag');
+  const playBtn = document.getElementById('playBtn');
+  const playIcon = document.getElementById('playIcon');
+  const pauseIcon = document.getElementById('pauseIcon');
+  const backBtn = document.getElementById('backBtn');
+  const fwdBtn = document.getElementById('fwdBtn');
+
+  const lyricList = document.getElementById('lyricList');
+  const taggedCount = document.getElementById('taggedCount');
+  const listLabelText = document.getElementById('listLabelText');
+  const tagBtnLabel = document.getElementById('tagBtnLabel');
+
+  const undoBtn = document.getElementById('undoBtn');
+  const tagBtn = document.getElementById('tagBtn');
+  const finishBtn = document.getElementById('finishBtn');
+
+  const exportSummary = document.getElementById('exportSummary');
+  const summaryCount = document.getElementById('summaryCount');
+  const lrcOutput = document.getElementById('lrcOutput');
+  const backToTagBtn = document.getElementById('backToTagBtn');
+  const copyBtn = document.getElementById('copyBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+
+  const toastEl = document.getElementById('toast');
+
+  // ---------- browser storage (with graceful fallback) ----------
+  // localStorage isn't available in every embedded/preview context — if it throws,
+  // the name simply won't persist between visits, but everything else still works.
+  function loadSyncedByName(){
+    try{
+      const saved = localStorage.getItem(SYNCED_BY_KEY);
+      if (saved) syncedByInput.value = saved;
+    }catch(e){ /* storage unavailable this session */ }
+  }
+  function saveSyncedByName(){
+    try{ localStorage.setItem(SYNCED_BY_KEY, syncedByInput.value.trim()); }
+    catch(e){ /* storage unavailable this session */ }
+  }
+  syncedByInput.addEventListener('input', saveSyncedByName);
+  loadSyncedByName();
+
+  // ---------- helpers ----------
+  function pad(n, len){ len = len || 2; return String(Math.floor(n)).padStart(len, '0'); }
+
+  function formatTime(t){
+    if (!isFinite(t) || t < 0) t = 0;
+    const m = Math.floor(t / 60);
+    const s = Math.floor(t % 60);
+    const cs = Math.floor((t * 100) % 100);
+    return pad(m) + ':' + pad(s) + '.' + pad(cs);
+  }
+
+  function showToast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => toastEl.classList.remove('show'), 1800);
+  }
+
+  function goToScreen(name){
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    screens[name].classList.add('active');
+    const order = ['setup', 'tag', 'export'];
+    const idx = order.indexOf(name);
+    stepDots.forEach((dot, i) => {
+      dot.classList.toggle('active', i === idx);
+      dot.classList.toggle('done', i < idx);
+    });
+    tagBar.style.display = (name === 'tag') ? 'flex' : 'none';
+  }
+
+  // ---------- setup screen ----------
+  function checkStartEnabled(){
+    const hasAudio = !!audio.src;
+    const hasLyrics = lyricsInput.value.trim().length > 0;
+    startBtn.disabled = !(hasAudio && hasLyrics);
+  }
+
+  audioFile.addEventListener('change', () => {
+    const file = audioFile.files[0];
+    if (!file) return;
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    objectUrl = URL.createObjectURL(file);
+    audio.src = objectUrl;
+    fileLabel.textContent = file.name;
+    fileSub.textContent = 'Loaded — ready to tag';
+    if (!titleInput.value.trim()){
+      titleInput.value = file.name.replace(/\.[^/.]+$/, '');
+    }
+    checkStartEnabled();
+  });
+
+  lyricsInput.addEventListener('input', checkStartEnabled);
+
+  startBtn.addEventListener('click', () => {
+    const raw = lyricsInput.value.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    if (raw.length === 0) return;
+
+    wordMode = wordModeToggle.checked;
+    lines = raw.map(text => {
+      const units = wordMode ? text.split(/\s+/).filter(Boolean) : [text];
+      const safeUnits = units.length ? units : [text];
+      return { text, units: safeUnits, unitTimes: new Array(safeUnits.length).fill(null) };
+    });
+    activeLine = 0;
+    activeUnit = 0;
+    history = [];
+    playingUnit = null;
+
+    tagBtnLabel.textContent = wordMode ? 'TAG THIS WORD' : 'TAG THIS LINE';
+    listLabelText.textContent = wordMode ? 'Lyric words' : 'Lyric lines';
+    wordModeToggleTag.checked = wordMode;
+    lcdMeta.textContent = [titleInput.value.trim(), artistInput.value.trim()].filter(Boolean).join(' — ') || 'Untitled';
+    renderLines();
+    updateTagBar();
+    goToScreen('tag');
+  });
+
+  // ---------- audio transport ----------
+  audio.addEventListener('loadedmetadata', () => {
+    lcdDuration.textContent = 'of ' + formatTime(audio.duration);
+  });
+
+  audio.addEventListener('timeupdate', () => {
+    lcdTime.textContent = formatTime(audio.currentTime);
+    if (isFinite(audio.duration) && audio.duration > 0){
+      scrubber.value = String((audio.currentTime / audio.duration) * 1000);
+    }
+    const u = computePlayingUnit(audio.currentTime);
+    const changed = (u === null && playingUnit !== null) ||
+                    (u !== null && (!playingUnit || u.line !== playingUnit.line || u.unit !== playingUnit.unit));
+    if (changed){
+      playingUnit = u;
+      applyPlayingClass(true);
+    }
+  });
+
+  audio.addEventListener('play', () => { playIcon.style.display='none'; pauseIcon.style.display='block'; isPlaying = true; });
+  audio.addEventListener('pause', () => { playIcon.style.display='block'; pauseIcon.style.display='none'; isPlaying = false; });
+  audio.addEventListener('ended', () => { playIcon.style.display='block'; pauseIcon.style.display='none'; isPlaying = false; });
+
+  // finds the last tagged unit (word, or whole line) at or before the given time —
+  // whatever's "sounding" right now
+  function computePlayingUnit(t){
+    let result = null;
+    for (let i = 0; i < lines.length; i++){
+      const L = lines[i];
+      for (let j = 0; j < L.units.length; j++){
+        const time = L.unitTimes[j];
+        if (time != null && time <= t) result = { line: i, unit: j };
+        else if (time != null && time > t) return result;
+      }
+    }
+    return result;
+  }
+
+  // highlights the current playing row (and word, in word mode) and, while actually
+  // playing, auto-scrolls it into view
+  function applyPlayingClass(allowScroll){
+    lyricList.querySelectorAll('.playing').forEach(el => el.classList.remove('playing'));
+    if (!playingUnit) return;
+    const row = lyricList.children[playingUnit.line];
+    if (!row) return;
+    if (wordMode){
+      const wordEl = row.querySelectorAll('.word')[playingUnit.unit];
+      if (wordEl) wordEl.classList.add('playing');
+    } else {
+      row.classList.add('playing');
+    }
+    if (allowScroll && isPlaying){
+      row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }
+
+  playBtn.addEventListener('click', () => {
+    if (!audio.src) return;
+    if (audio.paused) audio.play(); else audio.pause();
+  });
+  backBtn.addEventListener('click', () => { audio.currentTime = Math.max(0, audio.currentTime - 5); });
+  fwdBtn.addEventListener('click', () => { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 5); });
+
+  scrubber.addEventListener('input', () => {
+    if (isFinite(audio.duration) && audio.duration > 0){
+      audio.currentTime = (scrubber.value / 1000) * audio.duration;
+    }
+  });
+
+  // ---------- lyric list ----------
+  function renderLines(){
+    lyricList.innerHTML = '';
+    let completeLines = 0;
+
+    lines.forEach((line, i) => {
+      const isComplete = line.unitTimes.every(t => t != null);
+      if (isComplete) completeLines++;
+
+      const row = document.createElement('div');
+      row.className = 'lyric-row' + (isComplete ? ' tagged' : '') + (i === activeLine ? ' active' : '');
+
+      const idx = document.createElement('span');
+      idx.className = 'idx';
+      idx.textContent = pad(i + 1);
+
+      const txt = document.createElement('span');
+      txt.className = 'txt' + (wordMode ? ' word-row' : '');
+
+      if (wordMode){
+        line.units.forEach((word, j) => {
+          const span = document.createElement('span');
+          span.className = 'word' +
+            (line.unitTimes[j] != null ? ' tagged' : '') +
+            (i === activeLine && j === activeUnit ? ' current' : '');
+          span.textContent = word;
+          span.addEventListener('click', (e) => {
+            e.stopPropagation();
+            tapUnit(i, j);
+          });
+          txt.appendChild(span);
+        });
+      } else {
+        txt.textContent = line.text;
+      }
+
+      const stamp = document.createElement('span');
+      stamp.className = 'stamp';
+      stamp.textContent = line.unitTimes[0] != null ? formatTime(line.unitTimes[0]) : '—';
+
+      row.appendChild(idx);
+      row.appendChild(txt);
+      row.appendChild(stamp);
+
+      row.addEventListener('click', () => {
+        if (wordMode){
+          // tap landed on row padding, not a specific word chip — just navigate there
+          activeLine = i;
+          activeUnit = firstUntaggedUnit(line);
+          const t = line.unitTimes[activeUnit];
+          if (t != null) audio.currentTime = t;
+          renderLines();
+        } else {
+          tapUnit(i, 0);
+        }
+      });
+
+      lyricList.appendChild(row);
+    });
+
+    const totalUnits = wordMode ? lines.reduce((n, l) => n + l.units.length, 0) : lines.length;
+    const taggedUnits = wordMode
+      ? lines.reduce((n, l) => n + l.unitTimes.filter(t => t != null).length, 0)
+      : completeLines;
+    taggedCount.textContent = taggedUnits + ' / ' + totalUnits + (wordMode ? ' words tagged' : ' tagged');
+    updateTagBar();
+
+    // reapply the playback highlight to the freshly-built rows (no scroll — this is a rebuild, not new playback)
+    applyPlayingClass(false);
+
+    // only auto-scroll to the tag-target row when the list isn't already being driven by playback
+    if (!isPlaying){
+      const activeEl = lyricList.querySelector('.lyric-row.active');
+      if (activeEl) activeEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }
+
+  // ---------- switch word-by-word on/off mid-session, without losing existing tags ----------
+  function convertToWordMode(){
+    lines = lines.map(line => {
+      const words = line.text.split(/\s+/).filter(Boolean);
+      const units = words.length ? words : [line.text];
+      const unitTimes = new Array(units.length).fill(null);
+      if (line.unitTimes[0] != null) unitTimes[0] = line.unitTimes[0]; // keep the line's stamp as word 1's stamp
+      return { text: line.text, units, unitTimes };
+    });
+  }
+
+  function convertToLineMode(){
+    lines = lines.map(line => {
+      const firstTagged = line.unitTimes.find(t => t != null);
+      return { text: line.text, units: [line.text], unitTimes: [firstTagged != null ? firstTagged : null] };
+    });
+  }
+
+  function setWordMode(newMode){
+    if (newMode === wordMode || lines.length === 0){
+      wordMode = newMode;
+      wordModeToggleTag.checked = wordMode;
+      wordModeToggle.checked = wordMode;
+      return;
+    }
+    if (newMode) convertToWordMode(); else convertToLineMode();
+
+    wordMode = newMode;
+    wordModeToggleTag.checked = wordMode;
+    wordModeToggle.checked = wordMode; // keep the setup screen in sync too
+    history = [];
+    playingUnit = null;
+    activeUnit = 0;
+    if (activeLine >= lines.length) activeLine = Math.max(0, lines.length - 1);
+    tagBtnLabel.textContent = wordMode ? 'TAG THIS WORD' : 'TAG THIS LINE';
+    listLabelText.textContent = wordMode ? 'Lyric words' : 'Lyric lines';
+    renderLines();
+  }
+
+  wordModeToggleTag.addEventListener('change', () => setWordMode(wordModeToggleTag.checked));
+
+  // returns the index of the first untagged unit in a line, or its last unit if all are tagged
+  function firstUntaggedUnit(line){
+    const idx = line.unitTimes.findIndex(t => t == null);
+    return idx === -1 ? line.units.length - 1 : idx;
+  }
+
+  // stamps a unit with the current playback time and advances the cursor past it
+  function stampUnit(lineIdx, unitIdx){
+    const L = lines[lineIdx];
+    L.unitTimes[unitIdx] = audio.currentTime;
+    history.push({ line: lineIdx, unit: unitIdx });
+    if (unitIdx < L.units.length - 1){
+      activeLine = lineIdx;
+      activeUnit = unitIdx + 1;
+    } else if (lineIdx < lines.length - 1){
+      activeLine = lineIdx + 1;
+      activeUnit = 0;
+    } else {
+      activeLine = lineIdx;
+      activeUnit = unitIdx;
+    }
+  }
+
+  // tapping a word chip or line row directly: an untagged tap stamps it right there
+  // (in rhythm with the audio); tapping something already tagged just seeks to review it,
+  // so a stray tap can't silently overwrite a good stamp
+  function tapUnit(lineIdx, unitIdx){
+    const L = lines[lineIdx];
+    if (!audio.src) return;
+    if (L.unitTimes[unitIdx] != null){
+      activeLine = lineIdx;
+      activeUnit = unitIdx;
+      audio.currentTime = L.unitTimes[unitIdx];
+    } else {
+      stampUnit(lineIdx, unitIdx);
+    }
+    renderLines();
+  }
+
+  function updateTagBar(){
+    tagBtn.disabled = !audio.src || lines.length === 0;
+    undoBtn.disabled = history.length === 0;
+  }
+
+  tagBtn.addEventListener('click', () => {
+    if (activeLine >= lines.length) return;
+    stampUnit(activeLine, activeUnit);
+    renderLines();
+  });
+
+  undoBtn.addEventListener('click', () => {
+    if (history.length === 0) return;
+    const last = history.pop();
+    lines[last.line].unitTimes[last.unit] = null;
+    activeLine = last.line;
+    activeUnit = last.unit;
+    renderLines();
+  });
+
+  finishBtn.addEventListener('click', () => {
+    buildExport();
+    goToScreen('export');
+  });
+
+  // ---------- export screen ----------
+  function generateLRC(){
+    const out = [];
+    const artist = artistInput.value.trim();
+    const album = albumInput.value.trim();
+    if (artist) out.push('[ar:' + artist + ']');
+    if (album) out.push('[al:' + album + ']');
+
+    lines.forEach(L => {
+      const isComplete = L.unitTimes.every(t => t != null);
+      if (!isComplete) return;
+      if (wordMode){
+        const lineStamp = formatTime(L.unitTimes[0]);
+        const wordsPart = L.units.map((w, j) => '<' + formatTime(L.unitTimes[j]) + '>' + w).join(' ');
+        out.push('[' + lineStamp + ']' + wordsPart);
+      } else {
+        out.push('[' + formatTime(L.unitTimes[0]) + ']' + L.units[0]);
+      }
+    });
+
+    const syncedBy = syncedByInput.value.trim();
+    if (syncedBy) out.push('Synced by ' + syncedBy);
+
+    return out.join('\n');
+  }
+
+  function buildExport(){
+    const total = lines.length;
+    const complete = lines.filter(l => l.unitTimes.every(t => t != null)).length;
+    summaryCount.textContent = complete + ' / ' + total;
+    exportSummary.classList.toggle('warn', complete < total);
+    lrcOutput.value = generateLRC();
+  }
+
+  backToTagBtn.addEventListener('click', () => {
+    renderLines();
+    goToScreen('tag');
+  });
+
+  copyBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(lrcOutput.value).then(() => {
+      showToast('Copied to clipboard');
+    }).catch(() => {
+      lrcOutput.select();
+      showToast('Select and copy manually');
+    });
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    const blob = new Blob([lrcOutput.value], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const name = (titleInput.value.trim() || 'lyrics').replace(/[^\w\-]+/g, '_');
+    a.href = url;
+    a.download = name + '.lrc';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast('Downloaded ' + name + '.lrc');
+  });
+
+  goToScreen('setup');
+})();
+</script>
+</body>
+</html>
