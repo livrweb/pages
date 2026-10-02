@@ -3,4 +3,4 @@
 # Lines starting with # are ignored.
 
 /videos/leader.mp4 | make be your elite leader | Copyed from YT and any future episodes are here | /videos/thumbnails/yt.png
-/videos/water.mp4 | If Water Gun Fights Were Fortnite | Copyed from YT and any future episodes are here | /videos/thumbnails/yt.png
+chunks:/chunks/water/chunk_000.mp4 /chunks/water/chunk_001.mp4 /chunks/water/chunk_002.mp4 /chunks/water/chunk_003.mp4 | If Water Gun Fights Were Fortnite | Copyed from YT and any future episodes are here
