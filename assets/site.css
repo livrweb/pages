@@ -62,12 +62,23 @@
     justify-content:space-between;
     gap:14px;
     padding:16px 28px;
-    background:rgba(16,15,13,.86);
-    backdrop-filter:blur(8px);
     border-bottom:1px solid var(--edge);
   }
-  html[data-theme="purple"] nav{ background:rgba(20,16,28,.86); }
-  html[data-theme="terminal"] nav{ background:rgba(5,7,5,.86); }
+  /* The blurred background lives on a pseudo-element: backdrop-filter on <nav>
+     itself would turn the nav into the containing block for the fixed mobile
+     drawer, pinning the drawer to the nav and causing horizontal overflow. */
+  nav::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    z-index:-1;
+    background:rgba(16,15,13,.86);
+    -webkit-backdrop-filter:blur(8px);
+    backdrop-filter:blur(8px);
+    pointer-events:none;
+  }
+  html[data-theme="purple"] nav::before{ background:rgba(20,16,28,.86); }
+  html[data-theme="terminal"] nav::before{ background:rgba(5,7,5,.86); }
 
   .scroll-progress{
     position:absolute;
@@ -182,19 +193,30 @@
       border-left:1px solid var(--edge);
       padding:88px 28px 28px;
       transform:translateX(100%);
-      transition:transform .28s ease;
+      visibility:hidden;
+      transition:transform .28s ease, visibility 0s linear .28s;
       z-index:55;
       overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
     }
-    .nav-links.open{ transform:translateX(0); }
+    .nav-links.open{
+      transform:translateX(0);
+      visibility:visible;
+      transition:transform .28s ease, visibility 0s;
+    }
+    .nav-links li{ width:100%; }
+    .nav-links a{ display:inline-block; padding:6px 0; }
     .nav-links .theme-btn-mobile{ display:block; }
+    /* Backdrop must sit BELOW the nav (z-index 50): the nav is its own stacking
+       context, so anything above 50 here covers the drawer and swallows taps. */
     .nav-backdrop.open{
       display:block;
       position:fixed;
       inset:0;
       background:rgba(0,0,0,.5);
-      z-index:52;
+      z-index:49;
     }
+    body.nav-open{ overflow:hidden; }
     .nav-right .theme-btn.desktop-only{ display:none; }
   }
   .theme-btn-mobile{ display:none; }
