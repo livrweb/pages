@@ -274,7 +274,7 @@ function _doNotCall() {
   return atob('SGUgd2FzIHdhdGNoaW5nIHlvdSByZWFkIHRoaXMu');
 }
 
-// --- VOID / ADMIN VAULT: works from any page, lives on studio.html ---
+// --- VOID / ADMIN VAULT: works from any page, lives on /studio/ ---
 // typing the code anywhere unlocks it site-wide (Void shows up in every
 // nav) and takes you to where the vault actually lives if you're not
 // already there.
@@ -288,7 +288,7 @@ function unlockVoid() {
     vault.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } else {
     showToast('Void unlocked');
-    window.location.href = '/studio.html#admin-vault';
+    window.location.href = '/studio/#admin-vault';
   }
 }
 (function restoreVoidState() {
@@ -548,7 +548,7 @@ console.log('%cLooking for the source? It is right here — view-source is right
 // Photos with no line in captions.txt just show no caption.
 // Numbers with no matching image file are skipped automatically. Blank lines and
 // lines starting with # are ignored.
-const LOCAL_PHOTO_DIR = 'assets/photos/';   // relative to photos.html (works live and when opened from disk)
+const LOCAL_PHOTO_DIR = '../assets/photos/';   // relative to photos/index.html (works live and when opened from disk)
 const PHOTO_COUNT = 31;                        // looks for 1.jpg ... 31.jpg
 const photoFile = n => `${n}.jpg`;
 const localPhotos = Array.from({ length: PHOTO_COUNT }, (_, i) => i + 1);

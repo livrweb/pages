@@ -44,13 +44,13 @@
   <a href="/" class="nav-name" id="site-logo">Liver B</a>
   <ul class="nav-links" id="nav-links">
     <li><a href="/">About</a></li>
-    <li><a href="/experiments.html">Experiments</a></li>
-    <li><a href="/videos.html">Videos</a></li>
+    <li><a href="/experiments/">Experiments</a></li>
+    <li><a href="/videos/">Videos</a></li>
     <li><a href="/music/">Music</a></li>
-    <li><a href="/studio.html">Studio</a></li>
-    <li><a href="/photos.html">Photos</a></li>
+    <li><a href="/studio/">Studio</a></li>
+    <li><a href="/photos/">Photos</a></li>
     <li><a href="/OWS/" class="active">OWS</a></li>
-    <li class="void-link"><a href="/studio.html#admin-vault">Void</a></li>
+    <li class="void-link"><a href="/studio/#admin-vault">Void</a></li>
     <li class="theme-btn-mobile">
       <button class="theme-btn" id="theme-btn-mobile" type="button">
         <span class="dot"></span><span id="theme-label-mobile">Darkroom</span>
@@ -382,7 +382,7 @@ async function submitScore(){
 }
 function setNavLink(u){
   let a=$('acct-link');
-  if(!a){const li=document.createElement('li');li.innerHTML='<a href="/account.html" id="acct-link"></a>';
+  if(!a){const li=document.createElement('li');li.innerHTML='<a href="/account/" id="acct-link"></a>';
     const ul=$('nav-links');ul.insertBefore(li,ul.querySelector('.void-link')||null);a=li.firstChild;}
   a.textContent=u?u.displayName.slice(0,14):'Sign in';
   if(!u){a.href='#';a.onclick=e=>{e.preventDefault();if(started){setPaused(true);}document.querySelector('[data-t="tab-account"]').click();};}
