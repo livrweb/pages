@@ -114,7 +114,7 @@ updateProgress();
   const here = location.pathname.replace(/\/index\.html$/, '/').replace(/\/$/, '') || '/';
   document.querySelectorAll('.nav-links a').forEach(a => {
     const target = a.getAttribute('href');
-    if (!target || target.startsWith('#')) return;
+    if (!target || target.startsWith('#') || a.closest('.void-link')) return;
     const targetPath = target.split('#')[0].replace(/\/index\.html$/, '/').replace(/\/$/, '') || '/';
     a.classList.toggle('active', targetPath === here);
   });
@@ -145,12 +145,14 @@ function closeNav() {
   navToggle.classList.remove('open');
   navLinksEl.classList.remove('open');
   navBackdrop.classList.remove('open');
+  document.body.classList.remove('nav-open');
   navToggle.setAttribute('aria-expanded', 'false');
 }
 function openNav() {
   navToggle.classList.add('open');
   navLinksEl.classList.add('open');
   navBackdrop.classList.add('open');
+  document.body.classList.add('nav-open');
   navToggle.setAttribute('aria-expanded', 'true');
 }
 if (navToggle) {
