@@ -535,20 +535,86 @@ document.addEventListener('keydown', (e) => {
 // --- CONSOLE MESSAGE FOR FELLOW DEVS ---
 console.log('%cLooking for the source? It is right here — view-source is right there in the menu.', 'color:#e8542c;font-family:monospace;font-size:12px;');
 
-// --- BACKUP CAPTION DICTIONARY ---
-const backupPhotoCaptions = {
-  "AP1GczObmw5Uy_FA1FyPL": "Took downtown Rochester NY",
-  "AP1GczPHMyF8zrcPZcste": "Caught at lakeside diner",
-  "AP1GczMeIrqT8_uNV4K_RxhM": "Boat in Sodus NY"
-};
+// --- LOCAL PHOTOS ---
+// Photos are hosted on this site now. Put the image files and a captions.txt
+// in LOCAL_PHOTO_DIR, and list the image files here (in display order).
+//
+// captions.txt has one caption per line, as  number: caption
+//   1: Took at...
+//   2: Beanie at the park!
+// (a filename like "2.jpg: ..." also works - only the number is used).
+// Photos with no line in captions.txt just show no caption.
+// Numbers with no matching image file are skipped automatically. Blank lines and
+// lines starting with # are ignored.
+const LOCAL_PHOTO_DIR = 'assets/photos/';   // relative to photos.html (works live and when opened from disk)
+const PHOTO_COUNT = 31;                        // looks for 1.jpg ... 31.jpg
+const photoFile = n => `${n}.jpg`;
+const localPhotos = Array.from({ length: PHOTO_COUNT }, (_, i) => i + 1);
 
-// fetchLatestData powers both the hero profile photo (home page) and the
-// gallery (photos page). each page only has one of the two elements, so
-// this only fills in whichever one is actually present.
+async function loadCaptions() {
+  const captions = {};
+  try {
+    const res = await fetch(LOCAL_PHOTO_DIR + 'captions.txt', { cache: 'no-cache' });
+    if (!res.ok) return captions;
+    const text = await res.text();
+    text.split(/\r?\n/).forEach(line => {
+      line = line.trim();
+      if (!line || line.startsWith('#')) return;
+      const i = line.indexOf(':');
+      if (i < 1) return;
+      const num = (line.slice(0, i).match(/\d+/) || [])[0];
+      const caption = line.slice(i + 1).trim();
+      if (num && caption) captions[Number(num)] = caption;
+    });
+  } catch (e) {
+    console.error('Could not load captions.txt:', e);
+  }
+  return captions;
+}
+
+async function renderLocalGallery(container) {
+  const captions = await loadCaptions();
+  container.innerHTML = '';
+  localPhotos.forEach(n => {
+    const file = photoFile(n);
+    const caption = captions[n] || '';
+    const src = LOCAL_PHOTO_DIR + encodeURIComponent(file);
+    const item = document.createElement('div');
+    item.className = 'gallery-item';
+
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = caption || 'Photo';
+    img.loading = 'lazy';
+    // no file for this number yet -> drop the tile instead of showing a broken image
+    img.addEventListener('error', () => item.remove());
+    item.appendChild(img);
+
+    // admin mode shows the filename (used to be the Google Photos ID)
+    const snippetDiv = document.createElement('div');
+    snippetDiv.className = 'admin-snippet';
+    snippetDiv.textContent = file;
+    item.appendChild(snippetDiv);
+
+    if (caption) {
+      const captionDiv = document.createElement('div');
+      captionDiv.className = 'caption-overlay';
+      captionDiv.textContent = caption;
+      item.appendChild(captionDiv);
+    }
+
+    item.addEventListener('click', () => openLightbox(src, caption));
+    container.appendChild(item);
+  });
+}
+
+// the gallery (photos page) is now local — see renderLocalGallery above.
+// fetchLatestData still fills in the hero profile photo (home page).
 document.addEventListener("DOMContentLoaded", () => {
   const container = document.getElementById('gallery-container');
   const pfpElement = document.getElementById('dynamic-pfp');
-  if (container || pfpElement) fetchLatestData(container, pfpElement);
+  if (container) renderLocalGallery(container);
+  if (pfpElement) fetchLatestData(pfpElement);
 });
 
 // Google Photos share URLs sometimes come back from the Worker with a
@@ -578,13 +644,8 @@ function sanitizeGooglePhotoUrl(url) {
   return url.replace(/=w\d+(-h\d+)?(-no)?(-tmp)?/g, '') + '=w1000';
 }
 
-async function fetchLatestData(container, pfpElement) {
-  let eggFound = false;
-  try { eggFound = localStorage.getItem('eggFound') === 'true'; } catch (e) {}
-
-  const WORKER_URL = eggFound
-    ? 'https://photoapi.kcanada6031-6d9.workers.dev/?egg=true'
-    : 'https://photoapi.kcanada6031-6d9.workers.dev/';
+async function fetchLatestData(pfpElement) {
+  const WORKER_URL = 'https://photoapi.kcanada6031-6d9.workers.dev/';
 
   try {
     const response = await fetch(WORKER_URL);
@@ -595,75 +656,7 @@ async function fetchLatestData(container, pfpElement) {
     if (data.pfpUrl && pfpElement) {
       pfpElement.src = sanitizeGooglePhotoUrl(data.pfpUrl);
     }
-
-    if (!container) return;
-
-    const images = data.images;
-    container.innerHTML = '';
-
-    if (!images || images.length === 0) {
-      container.innerHTML = '<div class="loading-text">No photos found in the album.</div>';
-      return;
-    }
-
-    images.forEach(imgData => {
-      const cleanUrl = sanitizeGooglePhotoUrl(imgData.url);
-      const item = document.createElement('div');
-      item.className = 'gallery-item';
-
-      const img = document.createElement('img');
-      img.src = cleanUrl;
-      img.alt = imgData.caption || 'Google Photos Update';
-      img.loading = 'lazy';
-
-      // Google's CDN occasionally drops a request when many images load in
-      // parallel (rate limiting / transient network blip), leaving the
-      // browser showing alt text instead of the photo. Retry a couple of
-      // times with a short delay before giving up, since a plain reload
-      // almost always succeeds.
-      let retries = 0;
-      img.addEventListener('error', () => {
-        if (retries >= 2) return;
-        retries += 1;
-        setTimeout(() => {
-          img.src = `${cleanUrl}${cleanUrl.includes('?') ? '&' : '?'}retry=${retries}-${Date.now()}`;
-        }, 600 * retries);
-      });
-
-      item.appendChild(img);
-
-      const urlMatch = cleanUrl.match(/\/pw\/([a-zA-Z0-9\-_=]{20})/);
-      if (urlMatch && urlMatch[1]) {
-        const snippetDiv = document.createElement('div');
-        snippetDiv.className = 'admin-snippet';
-        snippetDiv.textContent = urlMatch[1];
-        item.appendChild(snippetDiv);
-      }
-
-      let finalCaption = imgData.caption;
-      if (!finalCaption) {
-        for (const urlSnippet in backupPhotoCaptions) {
-          if (cleanUrl.includes(urlSnippet)) {
-            finalCaption = backupPhotoCaptions[urlSnippet];
-            break;
-          }
-        }
-      }
-
-      if (finalCaption) {
-        const captionDiv = document.createElement('div');
-        captionDiv.className = 'caption-overlay';
-        captionDiv.textContent = finalCaption;
-        item.appendChild(captionDiv);
-      }
-
-      item.addEventListener('click', () => openLightbox(cleanUrl, finalCaption || ''));
-
-      container.appendChild(item);
-    });
-
   } catch (error) {
     console.error("Failed to fetch data:", error);
-    if (container) container.innerHTML = '<div class="loading-text">Unable to load live data. Showing fallback mode.</div>';
   }
 }

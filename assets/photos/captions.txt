@@ -1,0 +1,12 @@
+# number: caption
+1: Sadie the Dog
+2: Beanie at the park!
+3: Sadie the Dog
+4: Sadie the Dog
+5: Sadie the Dog
+6: Lexie the dog at Highlites, Webster NY
+7: Lexie the dog at Highlites, Webster NY
+8: Took at Clinton Square Rochester NY
+9: Took at Clinton Square Rochester NY
+11: Took at Martin Luther King Jr Park
+12: Took at Martin Luther King Jr Park
