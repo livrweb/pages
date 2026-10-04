@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="darkroom">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Player — Liver B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/site.css">
+<style>
+  .player-layout{ display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:18px; align-items:start; }
+
+  /* ── player ── */
+  .vp{ position:relative; background:#000; border:1px solid var(--edge); border-radius:8px; overflow:hidden; aspect-ratio:16/9; user-select:none; }
+  .vp:fullscreen{ border:0; border-radius:0; aspect-ratio:auto; width:100%; height:100%; }
+  .vp video{ width:100%; height:100%; display:block; object-fit:contain; background:#000; }
+  .vp .empty{ position:absolute; inset:0; display:grid; place-items:center; text-align:center; color:var(--text-muted); font-size:.8rem; padding:20px; line-height:1.6; }
+  .vp .spinner{ position:absolute; top:50%; left:50%; width:34px; height:34px; margin:-17px; border:2px solid var(--edge); border-top-color:var(--accent); border-radius:50%; animation:_spin .8s linear infinite; display:none; }
+  .vp.loading .spinner{ display:block; }
+  @keyframes _spin{ to{ transform:rotate(360deg); } }
+  /* big centre play icon */
+  .vp .big{ position:absolute; inset:0; display:grid; place-items:center; pointer-events:none; }
+  .vp .big span{ width:68px; height:68px; border-radius:50%; background:rgba(14,13,12,.7); border:1px solid rgba(255,255,255,.12); display:grid; place-items:center; opacity:0; transform:scale(.8); transition:.2s; }
+  .vp.paused .big span{ opacity:1; transform:none; }
+  .vp .big svg{ width:26px; height:26px; fill:var(--text); }
+  /* controls */
+  .vp .controls{ position:absolute; left:0; right:0; bottom:0; padding:30px 12px 10px; background:linear-gradient(transparent,rgba(0,0,0,.88)); transition:opacity .25s; }
+  .vp.idle.playing .controls{ opacity:0; }
+  .vp.idle.playing{ cursor:none; }
+  .vp .seek{ position:relative; height:18px; cursor:pointer; touch-action:none; display:flex; align-items:center; }
+  .vp .seek .track{ position:relative; width:100%; height:4px; background:rgba(255,255,255,.18); border-radius:2px; transition:height .12s; }
+  .vp .seek:hover .track,.vp .seek.drag .track{ height:6px; }
+  .vp .seek .buf,.vp .seek .bar{ position:absolute; left:0; top:0; bottom:0; border-radius:2px; width:0; }
+  .vp .seek .buf{ background:rgba(255,255,255,.28); }
+  .vp .seek .bar{ background:var(--accent); }
+  .vp .seek .bar::after{ content:''; position:absolute; right:-6px; top:50%; width:12px; height:12px; margin-top:-6px; border-radius:50%; background:var(--accent); transform:scale(0); transition:transform .12s; }
+  .vp .seek:hover .bar::after,.vp .seek.drag .bar::after{ transform:scale(1); }
+  .vp .seek .stip{ position:absolute; bottom:20px; transform:translateX(-50%); background:rgba(14,13,12,.9); border:1px solid var(--edge); font-size:.66rem; padding:2px 6px; border-radius:4px; display:none; white-space:nowrap; }
+  .vp .seek:hover .stip{ display:block; }
+  .vp .row{ display:flex; align-items:center; gap:4px; margin-top:4px; }
+  .vp .sp{ flex:1; }
+  .vbtn{ background:none; border:0; color:var(--text); width:34px; height:34px; border-radius:6px; display:grid; place-items:center; cursor:pointer; padding:0; font-family:inherit; }
+  .vbtn:hover{ background:rgba(255,255,255,.1); color:var(--accent); }
+  .vbtn:focus-visible{ outline:1px solid var(--accent); }
+  .vbtn svg{ width:20px; height:20px; fill:currentColor; }
+  .vbtn.txt{ width:auto; padding:0 8px; font-size:.72rem; font-weight:500; }
+  .vtime{ font-size:.72rem; color:var(--text); white-space:nowrap; padding:0 4px; }
+  .vvol{ display:flex; align-items:center; }
+  .vvol input{ width:0; opacity:0; transition:.2s; accent-color:var(--accent); height:4px; }
+  .vvol:hover input,.vvol input:focus{ width:68px; opacity:1; margin-right:4px; }
+  /* toast */
+  .vp .vtoast{ position:absolute; top:14px; left:50%; transform:translateX(-50%); background:rgba(14,13,12,.85); border:1px solid var(--edge); padding:5px 12px; border-radius:6px; font-size:.72rem; opacity:0; transition:opacity .2s; pointer-events:none; white-space:nowrap; }
+  .vp .vtoast.on{ opacity:1; }
+
+  /* ── meta ── */
+  .vmeta{ margin-top:14px; }
+  .vmeta .vmt{ font-family:'Fraunces',serif; font-weight:500; font-size:1.3rem; letter-spacing:-.01em; }
+  .vmeta .vmd{ margin:6px 0 0; color:var(--text-muted); font-size:.8rem; line-height:1.55; }
+  .vkeys{ margin-top:14px; color:var(--text-muted); font-size:.66rem; letter-spacing:.04em; line-height:2; }
+  .vkeys kbd{ border:1px solid var(--edge); border-radius:4px; padding:0 5px; background:var(--surface); font-family:inherit; color:var(--text); }
+
+  /* ── sidebar ── */
+  .vside{ background:var(--surface); border:1px solid var(--edge); border-radius:8px; padding:12px; }
+  .vside-head{ font-size:.7rem; letter-spacing:.08em; color:var(--text-muted); margin-bottom:10px; text-transform:uppercase; }
+  .vsearch{ width:100%; background:var(--bg); border:1px solid var(--edge); color:var(--text); font-family:inherit; font-size:.8rem; padding:8px 12px; border-radius:6px; }
+  .vsearch:focus-visible{ outline:none; border-color:var(--accent); }
+  .vlist{ margin:10px 0; max-height:440px; overflow:auto; display:flex; flex-direction:column; gap:4px; }
+  .vitem{ text-align:left; background:none; border:1px solid transparent; color:var(--text); font-family:inherit; padding:9px 10px; border-radius:6px; cursor:pointer; display:flex; gap:10px; align-items:flex-start; width:100%; }
+  .vitem:hover{ border-color:var(--edge); }
+  .vitem.on{ border-color:var(--accent); background:rgba(224,164,88,.07); }
+  .vitem.hidden{ display:none; }
+  .vitem .vn{ color:var(--text-muted); font-size:.68rem; padding-top:2px; min-width:18px; }
+  .vitem .vtt{ font-size:.8rem; line-height:1.35; }
+  .vitem .vdd{ color:var(--text-muted); font-size:.68rem; margin-top:2px; }
+  .vmsg{ color:var(--text-muted); font-size:.76rem; padding:14px 6px; line-height:1.55; }
+  .vopen-btn{ width:100%; background:none; border:1px dashed var(--edge); color:var(--text-muted); font-family:inherit; font-size:.74rem; padding:10px; border-radius:6px; cursor:pointer; margin-top:6px; }
+  .vopen-btn:hover{ border-color:var(--accent); color:var(--accent); }
+  body.drop::after{ content:'Drop video files to add'; position:fixed; inset:0; background:rgba(14,13,12,.88); display:grid; place-items:center; font-family:'Fraunces',serif; font-size:1.4rem; color:var(--accent); z-index:99; }
+
+  @media(max-width:900px){
+    .player-layout{ grid-template-columns:1fr; }
+    .vlist{ max-height:280px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-name" id="site-logo">Liver B</a>
+  <ul class="nav-links" id="nav-links">
+    <li><a href="/">About</a></li>
+    <li><a href="/experiments.html">Experiments</a></li>
+    <li><a href="/videos.html">Videos</a></li>
+    <li><a href="/studio.html">Studio</a></li>
+    <li><a href="/photos.html">Photos</a></li>
+    <li class="void-link"><a href="/studio.html#admin-vault">Void</a></li>
+    <li class="theme-btn-mobile">
+      <button class="theme-btn" id="theme-btn-mobile" type="button">
+        <span class="dot"></span><span id="theme-label-mobile">Darkroom</span>
+      </button>
+    </li>
+  </ul>
+  <div class="nav-right">
+    <button class="theme-btn desktop-only" id="theme-btn" type="button" aria-label="Switch theme">
+      <span class="dot"></span><span id="theme-label">Darkroom</span>
+    </button>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="nav-links">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="scroll-progress" id="scroll-progress"></div>
+</nav>
+<div class="nav-backdrop" id="nav-backdrop"></div>
+
+<main>
+  <section class="reveal">
+    <div class="section-head">
+      <h2 id="page-title">Player</h2>
+      <a href="/videos.html" style="font-size:.78rem;color:var(--text-muted);text-decoration:none;">&larr; all videos</a>
+    </div>
+    <div class="player-layout">
+      <div>
+        <div class="vp paused" id="vp" tabindex="0">
+          <video id="v" playsinline preload="metadata"></video>
+          <div class="empty" id="empty">Pick a video from the list, or open a file from your device.</div>
+          <div class="spinner"></div>
+          <div class="big"><span><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span></div>
+          <div class="vtoast" id="vtoast"></div>
+          <div class="controls" id="vcontrols">
+            <div class="seek" id="vseek">
+              <div class="track">
+                <div class="buf" id="vbuf"></div>
+                <div class="bar" id="vbar"></div>
+              </div>
+              <div class="stip" id="vstip">0:00</div>
+            </div>
+            <div class="row">
+              <button class="vbtn" id="vprev" title="Previous (P)" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></button>
+              <button class="vbtn" id="vplay" title="Play / Pause (Space)" aria-label="Play"></button>
+              <button class="vbtn" id="vnext" title="Next (N)" aria-label="Next"><svg viewBox="0 0 24 24"><path d="m6 18 8.5-6L6 6zM16 6v12h2V6z"/></svg></button>
+              <div class="vvol">
+                <button class="vbtn" id="vmute" title="Mute (M)" aria-label="Mute"></button>
+                <input type="range" id="vvol" min="0" max="1" step="0.02" value="1" aria-label="Volume">
+              </div>
+              <span class="vtime" id="vtime">0:00 / 0:00</span>
+              <span class="sp"></span>
+              <button class="vbtn txt" id="vspeed" title="Playback speed">1×</button>
+              <button class="vbtn" id="vpip" title="Picture in picture" aria-label="PiP" style="display:none"><svg viewBox="0 0 24 24"><path d="M19 7h-8v6h8zm4 12V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18z"/></svg></button>
+              <button class="vbtn" id="vfs" title="Fullscreen (F)" aria-label="Fullscreen"><svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7zm-2-4h2V7h3V5H5zm12 7h-3v2h5v-5h-2zM14 5v2h3v3h2V5z"/></svg></button>
+            </div>
+          </div>
+        </div>
+        <div class="vmeta">
+          <div class="vmt" id="vtitle">Nothing playing</div>
+          <p class="vmd" id="vdesc"></p>
+        </div>
+        <div class="vkeys">
+          <kbd>Space</kbd> play &nbsp;
+          <kbd>J</kbd>/<kbd>L</kbd> &plusmn;10s &nbsp;
+          <kbd>&larr;</kbd>/<kbd>&rarr;</kbd> &plusmn;5s &nbsp;
+          <kbd>&uarr;</kbd>/<kbd>&darr;</kbd> volume &nbsp;
+          <kbd>M</kbd> mute &nbsp;
+          <kbd>F</kbd> fullscreen &nbsp;
+          <kbd>N</kbd>/<kbd>P</kbd> next/prev &nbsp;
+          <kbd>&lt;</kbd>/<kbd>&gt;</kbd> speed
+        </div>
+      </div>
+      <aside class="vside">
+        <div class="vside-head">Playlist</div>
+        <input class="vsearch" id="vsearch" type="text" placeholder="Search…" aria-label="Search videos">
+        <div class="vlist" id="vlist"><div class="vmsg">Loading…</div></div>
+        <button class="vopen-btn" id="vopen">+ Open local video file(s)</button>
+        <input type="file" id="vfile" accept="video/*" multiple hidden>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+<div class="idle-whisper" id="idle-whisper"></div>
+<div class="disco-ball" id="disco-ball"></div>
+
+<footer>
+  &copy; Liver B — built and broken by hand
+  <div class="whisper" id="whisper"></div>
+</footer>
+
+<script src="/assets/site.js"></script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const v = $('v'), vp = $('vp');
+  const I = {
+    play:'<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+    pause:'<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>',
+    vol:'<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>',
+    low: '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4z"/></svg>',
+    mute:'<svg viewBox="0 0 24 24"><path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.5 2.5zm2.5 0a6.8 6.8 0 0 1-.9 3.4l1.5 1.5A8.8 8.8 0 0 0 21 12a9 9 0 0 0-7-8.8v2.1A7 7 0 0 1 19 12zM4.3 3 3 4.3 7.7 9H3v6h4l5 5v-6.7l4.2 4.2c-.7.5-1.4.9-2.2 1.1v2.1a9 9 0 0 0 3.7-1.8l2 2 1.3-1.3L12 7.7zM12 4 9.9 6.1 12 8.2z"/></svg>'
+  };
+  const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+  let list = [], idx = -1, idleT, toastT;
+
+  const fmt = s => {
+    if (!isFinite(s)) return '0:00';
+    s = Math.max(0, Math.floor(s));
+    const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), sc = s % 60;
+    return (h ? h + ':' + String(m).padStart(2,'0') : m) + ':' + String(sc).padStart(2,'0');
+  };
+  const say = t => {
+    const el = $('vtoast'); el.textContent = t; el.classList.add('on');
+    clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 900);
+  };
+
+  /* playlist parse
+     Normal entry:  /videos/foo.mp4 | Title | Desc | poster.jpg
+     Chunked entry: chunks:/videos/foo/chunk_000.mp4 /videos/foo/chunk_001.mp4 | Title | Desc | poster.jpg
+  */
+  function parse(text) {
+    return text.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#')).map(l => {
+      const p = l.split('|').map(s => s.trim());
+      const raw = p[0];
+      if (raw.startsWith('chunks:')) {
+        const chunkList = raw.slice(7).trim().split(/\s+/).filter(Boolean);
+        const fb = decodeURIComponent(chunkList[0].split('/').pop().split('?')[0]).replace(/chunk_\d+/, '').replace(/\.[^.]+$/, '').replace(/[-_]+$/, '');
+        return { chunks: chunkList, title: p[1] || fb, desc: p[2] || '', poster: p[3] || '' };
+      }
+      const fb = decodeURIComponent(raw.split('/').pop().split('?')[0]).replace(/\.[^.]+$/, '');
+      return { src: raw, title: p[1] || fb, desc: p[2] || '', poster: p[3] || '' };
+    }).filter(x => x.src || (x.chunks && x.chunks.length));
+  }
+
+  function renderList() {
+    const el = $('vlist');
+    if (!list.length) { el.innerHTML = '<div class="vmsg">No videos yet. Open a local file or add lines to vids.txt.</div>'; return; }
+    el.innerHTML = '';
+    list.forEach((it, i) => {
+      const b = document.createElement('button');
+      b.className = 'vitem' + (i === idx ? ' on' : '');
+      b.dataset.text = (it.title + ' ' + it.desc).toLowerCase();
+      b.innerHTML = '<span class="vn"></span><span><div class="vtt"></div><div class="vdd"></div></span>';
+      b.querySelector('.vn').textContent = String(i + 1).padStart(2, '0');
+      b.querySelector('.vtt').textContent = it.title;
+      b.querySelector('.vdd').textContent = it.desc;
+      b.onclick = () => load(i, true);
+      el.appendChild(b);
+    });
+    filterList();
+  }
+
+  function filterList() {
+    const q = $('vsearch').value.trim().toLowerCase();
+    document.querySelectorAll('.vitem').forEach(b => b.classList.toggle('hidden', !!q && !b.dataset.text.includes(q)));
+  }
+  $('vsearch').addEventListener('input', filterList);
+
+  /* ── chunked video loader ───────────────────────────────────────────
+     Strategy: fetch all chunks, concatenate their bytes into one Blob,
+     then set v.src to a blob: URL.  This is the most compatible
+     approach — no fragmented-MP4 requirement, no MediaSource quirks,
+     works in every browser that can play MP4 at all.
+
+     The split_video.py script now outputs plain MP4 segments with
+     -c:v libx264 -movflags +faststart, which are directly concatenable
+     at the byte level (each chunk is a self-contained MP4).
+
+     Downside: the player waits until all chunks are downloaded before
+     it can play.  A progress bar shows how far along we are.        */
+
+  let chunkAbort = null;   // AbortController for active chunk fetch
+
+  function abortChunks() {
+    if (chunkAbort) { chunkAbort.abort(); chunkAbort = null; }
+    // release any previous blob URL
+    if (v._chunkBlobUrl) { URL.revokeObjectURL(v._chunkBlobUrl); v._chunkBlobUrl = null; }
+  }
+
+  function setChunkProgress(loaded, total) {
+    // reuse the seek bar's buf indicator as a download bar before playback
+    const pct = total ? (loaded / total * 100) : 0;
+    $('vbuf').style.width = pct + '%';
+    $('vtime').textContent = total
+      ? 'Downloading… ' + Math.round(pct) + '%'
+      : 'Downloading…';
+  }
+
+  async function loadChunks(chunks, autoplay) {
+    abortChunks();
+    const ac = new AbortController();
+    chunkAbort = ac;
+
+    vp.classList.add('loading');
+    setChunkProgress(0, 0);
+
+    try {
+      // --- fetch all chunks, streaming byte counts for the progress bar
+      const blobs = [];
+      let loaded = 0;
+      // estimate total from Content-Length of first chunk, then scale
+      let total = 0;
+
+      for (let ci = 0; ci < chunks.length; ci++) {
+        if (ac.signal.aborted) return;
+        const res = await fetch(chunks[ci], { signal: ac.signal });
+        if (!res.ok) throw new Error('HTTP ' + res.status + ' — ' + chunks[ci]);
+
+        // stream the body so we can update progress
+        const reader = res.body.getReader();
+        const parts = [];
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (ac.signal.aborted) return;
+          parts.push(value);
+          loaded += value.byteLength;
+          // rough total estimate: assume all chunks similar size to first
+          if (ci === 0 && res.headers.get('content-length')) {
+            total = parseInt(res.headers.get('content-length')) * chunks.length;
+          }
+          setChunkProgress(loaded, total);
+        }
+        blobs.push(new Blob(parts, { type: 'video/mp4' }));
+      }
+
+      if (ac.signal.aborted) return;
+
+      // --- concatenate all blobs into one and hand to the video element
+      const final = new Blob(blobs, { type: 'video/mp4' });
+      const url = URL.createObjectURL(final);
+      v._chunkBlobUrl = url;
+
+      // clear the progress bar state
+      $('vbuf').style.width = '0%';
+      $('vtime').textContent = '0:00 / 0:00';
+
+      v.src = url;
+      vp.classList.remove('loading');
+      if (autoplay) v.play().catch(() => {});
+
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+      console.error('Chunk fetch failed:', e);
+      vp.classList.remove('loading');
+      const em = $('empty');
+      em.style.display = 'grid';
+      em.innerHTML = "Chunk download failed.<br><span style='color:var(--void);font-size:.75rem'>" + e.message + '</span>';
+    }
+  }
+
+  function load(i, autoplay) {
+    if (i < 0 || i >= list.length) return;
+    abortChunks();   // cancel any in-progress chunk download
+    idx = i;
+    const it = list[i];
+    $('empty').style.display = 'none';
+    vp.classList.add('loading');
+    v.poster = it.poster || '';
+
+    $('vtitle').textContent = it.title;
+    $('vdesc').textContent = it.desc;
+    document.title = it.title + ' — Liver B';
+    try { history.replaceState(null, '', '?v=' + encodeURIComponent(it.chunks ? 'chunks:' + it.chunks.join(' ') : it.src)); } catch(e){}
+    document.querySelectorAll('.vitem').forEach((b, n) => b.classList.toggle('on', n === i));
+
+    if (it.chunks) {
+      loadChunks(it.chunks, autoplay);
+    } else {
+      // normal single-file video
+      v.src = it.src + (it.poster || it.src.startsWith('blob:') ? '' : '#t=0.1');
+      if (autoplay) v.play().catch(() => {});
+    }
+  }
+
+  /* controls */
+  const toggle = () => { if (idx < 0 && list.length) return load(0, true); v.paused ? v.play().catch(()=>{}) : v.pause(); };
+  const seekBy = d => { if (isFinite(v.duration)) { v.currentTime = Math.min(v.duration, Math.max(0, v.currentTime + d)); say((d > 0 ? '+' : '') + d + 's'); } };
+  const setVol = x => { v.volume = Math.min(1, Math.max(0, x)); v.muted = v.volume === 0; say('Vol ' + Math.round(v.volume * 100) + '%'); };
+  const step = d => { const n = idx + d; if (n >= 0 && n < list.length) load(n, true); };
+  const cycleSpeed = d => {
+    let i = SPEEDS.indexOf(v.playbackRate); if (i < 0) i = 2;
+    i = Math.min(SPEEDS.length - 1, Math.max(0, i + d));
+    v.playbackRate = SPEEDS[i]; $('vspeed').textContent = SPEEDS[i] + '×'; say('Speed ' + SPEEDS[i] + '×');
+  };
+  const fullscreen = () => document.fullscreenElement ? document.exitFullscreen() : (vp.requestFullscreen || vp.webkitRequestFullscreen || function(){ v.webkitEnterFullscreen && v.webkitEnterFullscreen(); }).call(vp);
+
+  $('vplay').onclick = toggle;
+  $('vprev').onclick = () => (v.currentTime > 3 ? (v.currentTime = 0) : step(-1));
+  $('vnext').onclick = () => step(1);
+  $('vmute').onclick = () => { v.muted = !v.muted; };
+  $('vvol').oninput = e => { v.volume = +e.target.value; v.muted = v.volume === 0; };
+  $('vspeed').onclick = () => { const i = SPEEDS.indexOf(v.playbackRate); v.playbackRate = SPEEDS[(i + 1) % SPEEDS.length]; $('vspeed').textContent = v.playbackRate + '×'; };
+  $('vfs').onclick = fullscreen;
+  v.addEventListener('click', toggle);
+  v.addEventListener('dblclick', fullscreen);
+  if (document.pictureInPictureEnabled) {
+    $('vpip').style.display = '';
+    $('vpip').onclick = () => document.pictureInPictureElement ? document.exitPictureInPicture() : v.requestPictureInPicture().catch(()=>{});
+  }
+
+  /* sync */
+  function syncPlay() {
+    const p = v.paused;
+    vp.classList.toggle('paused', p); vp.classList.toggle('playing', !p);
+    $('vplay').innerHTML = p ? I.play : I.pause;
+    $('vplay').setAttribute('aria-label', p ? 'Play' : 'Pause');
+  }
+  function syncVol() {
+    $('vmute').innerHTML = v.muted || v.volume === 0 ? I.mute : v.volume < 0.5 ? I.low : I.vol;
+    $('vvol').value = v.muted ? 0 : v.volume;
+  }
+  function syncTime() {
+    const d = v.duration, c = v.currentTime;
+    $('vbar').style.width = (isFinite(d) && d ? c / d * 100 : 0) + '%';
+    $('vtime').textContent = fmt(c) + ' / ' + fmt(d);
+  }
+  function syncBuf() {
+    const b = v.buffered, d = v.duration;
+    $('vbuf').style.width = b.length && d ? (b.end(b.length - 1) / d * 100) + '%' : '0%';
+  }
+  ['play','pause','ended'].forEach(e => v.addEventListener(e, syncPlay));
+  v.addEventListener('volumechange', syncVol);
+  ['timeupdate','loadedmetadata','durationchange'].forEach(e => v.addEventListener(e, syncTime));
+  ['progress','loadedmetadata'].forEach(e => v.addEventListener(e, syncBuf));
+  ['loadstart','waiting','seeking'].forEach(e => v.addEventListener(e, () => vp.classList.add('loading')));
+  ['canplay','playing','seeked','error'].forEach(e => v.addEventListener(e, () => vp.classList.remove('loading')));
+  v.addEventListener('ended', () => { if (idx < list.length - 1) step(1); });
+  v.addEventListener('error', () => {
+    if (!v.getAttribute('src')) return;
+    const em = $('empty'); em.style.display = 'grid';
+    em.innerHTML = "Couldn't play this file.<br><span style='color:var(--void)'>Check the path or try MP4/H.264.</span>";
+  });
+
+  /* seek scrub */
+  const seek = $('vseek');
+  const frac = e => { const r = seek.getBoundingClientRect(); return Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); };
+  let dragging = false;
+  seek.addEventListener('pointerdown', e => { dragging = true; seek.classList.add('drag'); seek.setPointerCapture(e.pointerId); if (isFinite(v.duration)) v.currentTime = frac(e) * v.duration; });
+  seek.addEventListener('pointermove', e => {
+    const f = frac(e), tip = $('vstip');
+    tip.style.left = f * 100 + '%'; tip.textContent = fmt(f * (v.duration || 0));
+    if (dragging && isFinite(v.duration)) v.currentTime = f * v.duration;
+  });
+  const endDrag = () => { dragging = false; seek.classList.remove('drag'); };
+  seek.addEventListener('pointerup', endDrag); seek.addEventListener('pointercancel', endDrag);
+
+  /* idle hide */
+  const wake = () => { vp.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => vp.classList.add('idle'), 2500); };
+  ['mousemove','touchstart','keydown'].forEach(e => vp.addEventListener(e, wake));
+  vp.addEventListener('mouseleave', () => vp.classList.add('idle'));
+
+  /* keyboard */
+  document.addEventListener('keydown', e => {
+    if (e.target.matches('input') || e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key;
+    const map = {
+      ' ':toggle, k:toggle, K:toggle,
+      j:()=>seekBy(-10), J:()=>seekBy(-10), l:()=>seekBy(10), L:()=>seekBy(10),
+      ArrowLeft:()=>seekBy(-5), ArrowRight:()=>seekBy(5),
+      ArrowUp:()=>setVol((v.muted?0:v.volume)+.1), ArrowDown:()=>setVol(v.volume-.1),
+      m:()=>{v.muted=!v.muted;}, M:()=>{v.muted=!v.muted;},
+      f:fullscreen, F:fullscreen, n:()=>step(1), N:()=>step(1), p:()=>step(-1), P:()=>step(-1),
+      '>':()=>cycleSpeed(1), '<':()=>cycleSpeed(-1)
+    };
+    if (map[k] && !(e.target.matches('button') && k===' ')) { e.preventDefault(); map[k](); wake(); }
+  });
+
+  /* local files */
+  function addFiles(files) {
+    const vids = [...files].filter(f => f.type.startsWith('video/') || /\.(mp4|webm|mov|m4v|ogv|mkv)$/i.test(f.name));
+    if (!vids.length) return say('No video files found');
+    const first = list.length;
+    vids.forEach(f => list.push({ src: URL.createObjectURL(f), title: f.name.replace(/\.[^.]+$/,''), desc:'Local file', poster:'' }));
+    renderList(); load(first, true);
+  }
+  $('vopen').onclick = () => $('vfile').click();
+  $('vfile').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
+  let dc = 0;
+  window.addEventListener('dragenter', e => { e.preventDefault(); dc++; document.body.classList.add('drop'); });
+  window.addEventListener('dragleave', () => { if (--dc <= 0){ dc=0; document.body.classList.remove('drop'); } });
+  window.addEventListener('dragover', e => e.preventDefault());
+  window.addEventListener('drop', e => { e.preventDefault(); dc=0; document.body.classList.remove('drop'); addFiles(e.dataTransfer.files); });
+
+  /* boot */
+  syncPlay(); syncVol(); syncTime();
+  fetch('/vids.txt', { cache:'no-store' })
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+    .then(txt => {
+      list = parse(txt); renderList();
+      const want = new URLSearchParams(location.search).get('v');
+      if (want) {
+        // chunked deep link: ?v=chunks:/foo/chunk_000.mp4 /foo/chunk_001.mp4
+        if (want.startsWith('chunks:')) {
+          const chunkList = want.slice(7).trim().split(/\s+/).filter(Boolean);
+          const fb = decodeURIComponent(chunkList[0].split('/').pop()).replace(/chunk_\d+/, '').replace(/\.[^.]+$/, '').replace(/[-_]+$/, '');
+          list.unshift({ chunks: chunkList, title: fb, desc: '', poster: '' });
+          renderList(); load(0, true);
+        } else {
+          let i = /^\d+$/.test(want) ? +want - 1 : list.findIndex(x => x.src === want);
+          if (i >= 0 && i < list.length) load(i, true);
+          else {
+            list.unshift({ src: want, title: decodeURIComponent(want.split('/').pop().replace(/\.[^.]+$/, '')), desc:'', poster:'' });
+            renderList(); load(0, true);
+          }
+        }
+      }
+    })
+    .catch(() => { $('vlist').innerHTML = '<div class="vmsg">Couldn\'t load vids.txt. Open a local file or put vids.txt in the site root.</div>'; });
+})();
+</script>
+</body>
+</html>
