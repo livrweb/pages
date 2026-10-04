@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="darkroom">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Account — Liver B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="icon" type="image/png" href="/icon.png">
+<style>
+  .box{ max-width:460px; }
+  .box h3{ font-family:'Fraunces',serif; font-weight:500; font-size:1.15rem; margin:0 0 14px; }
+  .field{ display:block; margin-bottom:12px; font-size:.72rem; color:var(--text-muted); }
+  .field input, .field select{ display:block; width:100%; margin-top:5px; background:var(--surface); border:1px solid var(--edge); color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:.85rem; padding:10px 14px; border-radius:6px; }
+  .field input:focus, .field select:focus{ outline:none; border-color:var(--accent); }
+  .field input[readonly]{ opacity:.65; }
+  .btn{ background:var(--accent); color:var(--bg); border:0; border-radius:6px; font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:.8rem; padding:10px 18px; cursor:pointer; }
+  .btn:hover{ filter:brightness(1.12); }
+  .btn.ghost{ background:var(--surface); color:var(--text); border:1px solid var(--edge); }
+  .btn.ghost:hover{ border-color:var(--accent); filter:none; }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:4px; }
+  .link{ background:none; border:0; padding:0; color:var(--text-muted); font:inherit; font-size:.74rem; text-decoration:underline; cursor:pointer; }
+  .link:hover{ color:var(--accent); }
+  .err{ color:var(--void); font-size:.76rem; min-height:1.2em; margin:10px 0 0; }
+  .ok{ color:var(--accent); font-size:.76rem; min-height:1.2em; margin:10px 0 0; }
+  .grp{ padding:26px 0; border-top:1px solid var(--edge); }
+  .grp:first-child{ border-top:0; padding-top:0; }
+  .sec{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:12px 14px; border:1px solid var(--edge); border-radius:8px; background:var(--surface); margin-bottom:10px; }
+  .sec b{ font-family:'Fraunces',serif; font-weight:500; font-size:1rem; }
+  .sec small{ display:block; color:var(--text-muted); font-size:.72rem; margin-top:2px; }
+  .sec a{ font-size:.74rem; color:var(--accent); }
+  .sec.off{ opacity:.6; }
+  .or{ text-align:center; color:var(--text-muted); font-size:.72rem; margin:14px 0; }
+  button:focus-visible, a:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-name" id="site-logo">Liver B</a>
+  <ul class="nav-links" id="nav-links">
+    <li><a href="/">About</a></li>
+    <li><a href="/experiments.html">Experiments</a></li>
+    <li><a href="/videos.html">Videos</a></li>
+    <li><a href="/music/">Music</a></li>
+    <li><a href="/studio.html">Studio</a></li>
+    <li><a href="/photos.html">Photos</a></li>
+    <li class="void-link"><a href="/studio.html#admin-vault">Void</a></li>
+    <li class="theme-btn-mobile">
+      <button class="theme-btn" id="theme-btn-mobile" type="button">
+        <span class="dot"></span><span id="theme-label-mobile">Darkroom</span>
+      </button>
+    </li>
+  </ul>
+  <div class="nav-right">
+    <button class="theme-btn desktop-only" id="theme-btn" type="button" aria-label="Switch theme">
+      <span class="dot"></span><span id="theme-label">Darkroom</span>
+    </button>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="nav-links">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="scroll-progress" id="scroll-progress"></div>
+</nav>
+<div class="nav-backdrop" id="nav-backdrop"></div>
+
+<main>
+  <section class="reveal">
+    <div class="section-head"><h2>Account</h2></div>
+
+
+    <div class="box" id="authbox" hidden>
+      <h3 id="auth-title">Sign in</h3>
+      <form id="form" novalidate>
+        <label class="field" id="name-f" hidden>Display name (optional)<input id="name" autocomplete="nickname" maxlength="30"></label>
+        <label class="field">Username<input id="email" type="text" autocomplete="username" maxlength="20" autocapitalize="none" spellcheck="false" required></label>
+        <label class="field">Password<input id="pw" type="password" autocomplete="current-password" required></label>
+        <div class="row">
+          <button class="btn" type="submit" id="go">Sign in</button>
+          <button class="link" type="button" id="swap">Create an account</button>
+        </div>
+      </form>
+      <p class="err" id="aerr" role="alert"></p>
+      <p style="font-size:.72rem;color:var(--text-muted);margin:14px 0 0">No email needed. There's no password reset, so keep your password somewhere safe.</p>
+    </div>
+
+    <div class="box" id="acct" hidden>
+      <div class="grp">
+        <h3>Profile</h3>
+        <label class="field">Display name<input id="pname" maxlength="30"></label>
+        <label class="field">Username<input id="pmail" readonly></label>
+        <div class="row"><button class="btn" type="button" id="psave">Save name</button></div>
+        <p class="ok" id="pmsg" role="status"></p>
+      </div>
+      <div class="grp">
+        <h3>Theme</h3>
+        <div class="row" id="themes">
+          <button class="filter-btn" type="button" data-t="darkroom">Darkroom</button>
+          <button class="filter-btn" type="button" data-t="purple">Purple</button>
+          <button class="filter-btn" type="button" data-t="terminal">Terminal</button>
+        </div>
+        <p style="font-size:.72rem;color:var(--text-muted);margin:10px 0 0">Saved to your account, so it follows you to other devices.</p>
+      </div>
+      <div class="grp">
+        <h3>Secrets</h3>
+        <div id="secrets"></div>
+        <button class="link" type="button" id="sreset">Reset my secrets</button>
+      </div>
+      <div class="grp">
+        <button class="btn ghost" type="button" id="out">Sign out</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+<div class="idle-whisper" id="idle-whisper"></div>
+<div class="disco-ball" id="disco-ball"></div>
+
+<footer>
+  &copy; Liver B — built and broken by hand
+  <div class="whisper" id="whisper"></div>
+</footer>
+
+<script src="/assets/site.js"></script>
+<script type="module">
+import * as A from '/assets/auth.js';
+const $ = id => document.getElementById(id);
+
+{
+  let signup = false;
+  const setMode = s => {
+    signup = s;
+    $('auth-title').textContent = s ? 'Create account' : 'Sign in';
+    $('go').textContent = s ? 'Create account' : 'Sign in';
+    $('swap').textContent = s ? 'I have an account' : 'Create an account';
+    $('name-f').hidden = !s;
+    $('pw').autocomplete = s ? 'new-password' : 'current-password';
+    $('aerr').textContent = '';
+  };
+  setMode(false);
+  $('swap').onclick = () => setMode(!signup);
+
+  $('form').onsubmit = async e => {
+    e.preventDefault(); $('aerr').textContent = '';
+    try {
+      if (signup) await A.signUp($('email').value.trim(), $('pw').value, $('name').value.trim());
+      else await A.signIn($('email').value.trim(), $('pw').value);
+    } catch (err) { $('aerr').textContent = A.friendly(err); }
+  };
+  $('out').onclick = () => A.logout();
+
+  const fmtDate = t => t ? new Date(t).toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' }) : '';
+  function drawSecrets() {
+    const s = A.localSecrets(), defs = [['egg', 'Egg', '/egg/'], ['bigshot', 'Bigshot', '/bigshot/']];
+    $('secrets').innerHTML = '';
+    defs.forEach(([k, name, href]) => {
+      const f = s[k].found, d = document.createElement('div');
+      d.className = 'sec' + (f ? '' : ' off');
+      d.innerHTML = '<div><b></b><small></small></div>' + (f ? '<a></a>' : '');
+      d.querySelector('b').textContent = name;
+      d.querySelector('small').textContent = f ? 'Found' + (s[k].at ? ' ' + fmtDate(s[k].at) : '') : 'Not found yet';
+      if (f) { const a = d.querySelector('a'); a.href = href; a.textContent = 'Open'; }
+      $('secrets').appendChild(d);
+    });
+  }
+  $('sreset').onclick = async () => {
+    if (!confirm('Forget that you found egg and bigshot?')) return;
+    try { await A.resetSecrets(); drawSecrets(); } catch (err) { $('pmsg').textContent = A.friendly(err); }
+  };
+
+  $('psave').onclick = async () => {
+    const n = $('pname').value.trim(); $('pmsg').textContent = '';
+    try { await A.rename(n); $('pmsg').textContent = 'Saved.'; } catch (err) { $('pmsg').textContent = A.friendly(err); }
+  };
+
+  const markTheme = () => {
+    const t = document.documentElement.getAttribute('data-theme');
+    document.querySelectorAll('#themes button').forEach(b => b.classList.toggle('active', b.dataset.t === t));
+  };
+  document.querySelectorAll('#themes button').forEach(b => b.onclick = () => window.applyTheme && window.applyTheme(b.dataset.t));
+  new MutationObserver(markTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  A.onUser(u => {
+    $('authbox').hidden = !!u; $('acct').hidden = !u;
+    if (!u) return;
+    $('pname').value = u.displayName; $('pmail').value = u.username;
+    markTheme(); drawSecrets();
+  });
+}
+</script>
+</body>
+</html>
