@@ -112,7 +112,7 @@ function setNav(u) {
   const ul = document.getElementById('nav-links'); if (!ul) return;
   let a = document.getElementById('acct-link');
   if (!a) {
-    const li = document.createElement('li'); li.innerHTML = '<a href="/account.html" id="acct-link"></a>';
+    const li = document.createElement('li'); li.innerHTML = '<a href="/account/" id="acct-link"></a>';
     ul.insertBefore(li, ul.querySelector('.void-link') || ul.querySelector('.theme-btn-mobile'));
     a = li.firstChild;
   }

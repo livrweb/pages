@@ -9,19 +9,19 @@
        <priority>1.0000</priority>
   </url>
   <url>
-       <loc>https://liversprojects.uk/experiments.html</loc>
+       <loc>https://liversprojects.uk/experiments/</loc>
        <lastmod>2026-09-01T03:15:26+00:00</lastmod>
        <changefreq>daily</changefreq>
        <priority>0.8000</priority>
   </url>
   <url>
-       <loc>https://liversprojects.uk/studio.html</loc>
+       <loc>https://liversprojects.uk/studio/</loc>
        <lastmod>2026-09-01T03:15:26+00:00</lastmod>
        <changefreq>daily</changefreq>
        <priority>0.8000</priority>
   </url>
   <url>
-       <loc>https://liversprojects.uk/photos.html</loc>
+       <loc>https://liversprojects.uk/photos/</loc>
        <lastmod>2026-09-01T03:15:26+00:00</lastmod>
        <changefreq>daily</changefreq>
        <priority>0.8000</priority>
