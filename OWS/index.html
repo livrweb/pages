@@ -386,7 +386,7 @@ function setNavLink(u){
     const ul=$('nav-links');ul.insertBefore(li,ul.querySelector('.void-link')||null);a=li.firstChild;}
   a.textContent=u?u.displayName.slice(0,14):'Sign in';
   if(!u){a.href='#';a.onclick=e=>{e.preventDefault();if(started){setPaused(true);}document.querySelector('[data-t="tab-account"]').click();};}
-  else{a.href='/account.html';a.onclick=null;}
+  else{a.href='/account/';a.onclick=null;}
   measureNav();
 }
 Auth.onUser(async u=>{
