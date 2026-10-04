@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="darkroom">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music — Liver B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="icon" type="image/png" href="/icon.png">
+<style>
+  .mp{ display:grid; grid-template-columns:320px minmax(0,1fr); gap:28px; align-items:start; }
+  @media (max-width:760px){ .mp{ grid-template-columns:1fr; } }
+
+  .deck{ position:sticky; top:84px; }
+  @media (max-width:760px){ .deck{ position:static; } }
+  .stage{ position:relative; width:100%; max-width:320px; aspect-ratio:1; margin:0 auto; }
+  .stage canvas{ position:absolute; inset:0; width:100%; height:100%; }
+  .rec{ position:absolute; inset:17%; border-radius:50%; background:repeating-radial-gradient(circle,#0b0a09 0 3px,var(--surface-2) 3px 4px); border:1px solid var(--edge); animation:_spin 6s linear infinite; animation-play-state:paused; }
+  .playing .rec{ animation-play-state:running; }
+  @keyframes _spin{ to{ transform:rotate(360deg); } }
+  .rec .lab{ position:absolute; inset:34%; border-radius:50%; background:var(--accent); display:grid; place-items:center; font-family:'Fraunces',serif; font-weight:600; font-size:1.5rem; color:var(--bg); }
+  .rec .lab::after{ content:""; position:absolute; width:8%; height:8%; border-radius:50%; background:var(--bg); }
+
+  .now{ text-align:center; margin:14px 0 10px; min-height:62px; }
+  .now h3{ font-family:'Fraunces',serif; font-weight:500; font-size:1.2rem; margin:0 0 3px; letter-spacing:-.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .now p{ margin:0; font-size:.74rem; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  .seekrow{ display:flex; align-items:center; gap:10px; font-size:.7rem; color:var(--text-muted); font-variant-numeric:tabular-nums; }
+  input[type=range]{ -webkit-appearance:none; appearance:none; flex:1; height:4px; border-radius:2px; background:linear-gradient(to right,var(--accent) var(--p,0%),var(--edge) var(--p,0%)); cursor:pointer; margin:0; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:13px; height:13px; border-radius:50%; background:var(--accent); border:2px solid var(--bg); }
+  input[type=range]::-moz-range-thumb{ width:10px; height:10px; border-radius:50%; background:var(--accent); border:2px solid var(--bg); }
+  .ctl{ display:flex; justify-content:center; align-items:center; gap:10px; margin:14px 0 10px; }
+  .ctl button{ width:40px; height:40px; border-radius:50%; border:1px solid transparent; background:none; color:var(--text-muted); display:grid; place-items:center; cursor:pointer; }
+  .ctl button:hover{ color:var(--text); }
+  .ctl button.on{ color:var(--accent); border-color:var(--accent); background:var(--accent-dim); }
+  .ctl .play{ width:58px; height:58px; background:var(--accent); color:var(--bg); }
+  .ctl .play:hover{ color:var(--bg); filter:brightness(1.12); }
+  .ctl svg{ width:20px; height:20px; fill:currentColor; }
+  .ctl .play svg{ width:26px; height:26px; }
+  .vol{ display:flex; align-items:center; gap:10px; color:var(--text-muted); max-width:220px; margin:0 auto; }
+  .vol svg{ width:18px; height:18px; fill:currentColor; flex:none; }
+  button:focus-visible, input:focus-visible, .trk:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+  .lib-tools{ display:flex; gap:10px; align-items:center; margin-bottom:12px; }
+  .lib-tools .exp-search{ flex:1; }
+  .count{ font-size:.72rem; color:var(--text-muted); white-space:nowrap; }
+  .lib{ max-height:640px; overflow:auto; border:1px solid var(--edge); border-radius:8px; background:var(--surface); }
+  .alb > button{ width:100%; display:flex; align-items:baseline; justify-content:space-between; gap:12px; text-align:left; background:var(--surface-2); border:0; border-bottom:1px solid var(--edge); color:var(--text); font-family:'Fraunces',serif; font-size:.95rem; padding:10px 14px; cursor:pointer; position:sticky; top:0; z-index:1; }
+  .alb > button span{ font-family:'IBM Plex Mono',monospace; font-size:.68rem; color:var(--text-muted); white-space:nowrap; }
+  .alb.shut .trks{ display:none; }
+  .trk{ display:flex; align-items:center; gap:12px; padding:8px 14px; cursor:pointer; border-bottom:1px solid var(--edge); font-size:.78rem; }
+  .trk:last-child{ border-bottom:0; }
+  .trk:hover{ background:var(--surface-2); }
+  .trk.cur{ background:var(--accent-dim); color:var(--accent); }
+  .trk .t{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .trk .d{ color:var(--text-muted); font-size:.7rem; font-variant-numeric:tabular-nums; }
+  .trk[hidden], .alb[hidden]{ display:none; }
+  .msg{ padding:22px; font-size:.8rem; color:var(--text-muted); text-align:center; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-name" id="site-logo">Liver B</a>
+  <ul class="nav-links" id="nav-links">
+    <li><a href="/">About</a></li>
+    <li><a href="/experiments.html">Experiments</a></li>
+    <li><a href="/videos.html">Videos</a></li>
+    <li><a href="/music/" class="active">Music</a></li>
+    <li><a href="/studio.html">Studio</a></li>
+    <li><a href="/photos.html">Photos</a></li>
+    <li class="void-link"><a href="/studio.html#admin-vault">Void</a></li>
+    <li class="theme-btn-mobile">
+      <button class="theme-btn" id="theme-btn-mobile" type="button">
+        <span class="dot"></span><span id="theme-label-mobile">Darkroom</span>
+      </button>
+    </li>
+  </ul>
+  <div class="nav-right">
+    <button class="theme-btn desktop-only" id="theme-btn" type="button" aria-label="Switch theme">
+      <span class="dot"></span><span id="theme-label">Darkroom</span>
+    </button>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="nav-links">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="scroll-progress" id="scroll-progress"></div>
+</nav>
+<div class="nav-backdrop" id="nav-backdrop"></div>
+
+<main>
+  <section class="reveal">
+    <div class="section-head"><h2>Music</h2><span id="count"></span></div>
+    <div class="mp" id="mp">
+      <div class="deck">
+        <div class="stage">
+          <canvas id="viz"></canvas>
+          <div class="rec"><div class="lab" id="lab">♪</div></div>
+        </div>
+        <div class="now"><h3 id="title">Pick a song</h3><p id="sub">Choose something from the library</p></div>
+        <div class="seekrow"><span id="cur">0:00</span><input type="range" id="seek" min="0" max="1000" value="0" aria-label="Seek"><span id="dur">0:00</span></div>
+        <div class="ctl">
+          <button id="shuf" aria-label="Shuffle" title="Shuffle"><svg viewBox="0 0 24 24"><path d="M17 3l4 4-4 4V8h-2.6l-3.1 4.4L8.8 16H4v-2h3.8l2.9-4.1L13.7 6H17V3zM4 6h4.8l2.1 3-1.2 1.7L7.8 8H4V6zm13 8v-3l4 4-4 4v-3h-3.3l-2.1-3 1.2-1.7L14 14h3z"/></svg></button>
+          <button id="prev" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6L18 18V6z"/></svg></button>
+          <button id="play" class="play" aria-label="Play"><svg viewBox="0 0 24 24" id="pi"><path d="M8 5v14l11-7z"/></svg></button>
+          <button id="next" aria-label="Next"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
+          <button id="rep" aria-label="Repeat" title="Repeat: off"><svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg></button>
+        </div>
+        <div class="vol"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0014 7.97v8.05c1.5-.7 2.5-2.2 2.5-4.02z"/></svg><input type="range" id="vol" min="0" max="100" value="80" aria-label="Volume"></div>
+      </div>
+
+      <div>
+        <div class="lib-tools"><input type="text" class="exp-search" id="q" placeholder="Search songs, artists, albums..." aria-label="Search music"></div>
+        <div class="lib" id="lib"><div class="msg">Loading library…</div></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<audio id="au" preload="metadata"></audio>
+
+<div class="toast" id="toast"></div>
+<div class="idle-whisper" id="idle-whisper"></div>
+<div class="disco-ball" id="disco-ball"></div>
+
+<footer>
+  &copy; Liver B — built and broken by hand
+  <div class="whisper" id="whisper"></div>
+</footer>
+
+<script src="/assets/site.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id), au = $('au');
+  const BASE = (u => /\/[^\/.]*$/.test(u) ? u + '/' : u.replace(/[^\/]*$/, ''))(location.href.split(/[?#]/)[0]);
+  const ICON = { play:'<path d="M8 5v14l11-7z"/>', pause:'<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>' };
+  let tracks = [], idx = -1, shuffle = false, repeat = 0, ctx, an, data, raf;
+  const fmt = s => isFinite(s) && s > 0 ? Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2,'0') : '0:00';
+
+  /* ---------- library ---------- */
+  async function init() {
+    let list = [];
+    try {
+      const r = await fetch(BASE + 'tracks.json'); if (!r.ok) throw 0;
+      list = await r.json();
+    } catch (e) {
+      $('lib').innerHTML = '<div class="msg">Couldn\'t load tracks.json. Run the "Build music/tracks.json" action once from the Actions tab.</div>';
+      return;
+    }
+    tracks = list.map(x => {
+      const folder = decodeURIComponent(x.file).split('/').slice(0, -1).join(' / ');
+      return { title: x.title || decodeURIComponent(x.file).split('/').pop().replace(/\.[^.]+$/, ''),
+               artist: x.artist || '', album: x.album || folder || 'Singles',
+               url: new URL(x.file, BASE).href, dur: x.duration || 0 };
+    });
+    $('count').textContent = tracks.length + ' songs';
+    build();
+  }
+
+  function build() {
+    const groups = new Map();
+    tracks.forEach((t, i) => { (groups.get(t.album) || groups.set(t.album, []).get(t.album)).push(i); });
+    const lib = $('lib'); lib.innerHTML = '';
+    groups.forEach((ids, name) => {
+      const alb = document.createElement('div'); alb.className = 'alb';
+      const head = document.createElement('button'); head.type = 'button'; head.setAttribute('aria-expanded', 'true');
+      head.innerHTML = '<b style="font-weight:500"></b><span>' + ids.length + '</span>';
+      head.firstChild.textContent = name;
+      head.onclick = () => { const shut = alb.classList.toggle('shut'); head.setAttribute('aria-expanded', !shut); };
+      const wrap = document.createElement('div'); wrap.className = 'trks';
+      ids.forEach(i => {
+        const t = tracks[i], row = document.createElement('div');
+        row.className = 'trk'; row.tabIndex = 0; row.dataset.i = i;
+        row.dataset.s = (t.title + ' ' + t.artist + ' ' + t.album).toLowerCase();
+        row.innerHTML = '<span class="t"></span><span class="d">' + (t.dur ? fmt(t.dur) : '') + '</span>';
+        row.firstChild.textContent = t.title;
+        row.onclick = () => load(i, true);
+        row.onkeydown = e => { if (e.key === 'Enter') load(i, true); };
+        wrap.appendChild(row);
+      });
+      alb.append(head, wrap); lib.appendChild(alb);
+    });
+  }
+
+  $('q').oninput = e => {
+    const q = e.target.value.trim().toLowerCase();
+    document.querySelectorAll('.alb').forEach(a => {
+      let any = false;
+      a.querySelectorAll('.trk').forEach(r => { const m = !q || r.dataset.s.includes(q); r.hidden = !m; any = any || m; });
+      a.hidden = !any; if (q) a.classList.remove('shut');
+    });
+  };
+
+  /* ---------- playback ---------- */
+  function load(i, play) {
+    idx = i; const t = tracks[i]; au.src = t.url;
+    $('title').textContent = t.title;
+    $('sub').textContent = [t.artist, t.album].filter(Boolean).join(' · ') || ' ';
+    $('lab').textContent = t.title.trim().charAt(0).toUpperCase() || '♪';
+    document.title = t.title + ' — Liver B';
+    document.querySelectorAll('.trk.cur').forEach(r => r.classList.remove('cur'));
+    const row = document.querySelector('.trk[data-i="' + i + '"]');
+    if (row) { row.classList.add('cur'); row.closest('.alb').classList.remove('shut'); row.scrollIntoView({ block:'nearest' }); }
+    if ('mediaSession' in navigator) navigator.mediaSession.metadata = new MediaMetadata({ title:t.title, artist:t.artist, album:t.album });
+    if (play) start();
+  }
+  function initAudio() {
+    if (ctx) return;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = ctx.createMediaElementSource(au);
+    an = ctx.createAnalyser(); an.fftSize = 256; an.smoothingTimeConstant = .8;
+    src.connect(an); an.connect(ctx.destination); data = new Uint8Array(an.frequencyBinCount);
+  }
+  function start() { initAudio(); ctx.resume(); au.play().catch(() => {}); }
+  function toggle() { if (idx < 0) { if (tracks.length) load(0, true); return; } au.paused ? start() : au.pause(); }
+  function step(d, auto) {
+    if (!tracks.length) return; let n;
+    if (shuffle && tracks.length > 1) { do { n = Math.floor(Math.random() * tracks.length); } while (n === idx); }
+    else { n = idx + d; if (n >= tracks.length) { if (auto && repeat === 0) { au.pause(); return; } n = 0; } if (n < 0) n = tracks.length - 1; }
+    load(n, true);
+  }
+  function setUI() {
+    const p = !au.paused;
+    $('mp').classList.toggle('playing', p);
+    document.querySelector('.deck').classList.toggle('playing', p);
+    $('pi').innerHTML = p ? ICON.pause : ICON.play;
+    $('play').setAttribute('aria-label', p ? 'Pause' : 'Play');
+  }
+  au.onplay = au.onpause = () => { setUI(); if (!au.paused && !raf) draw(); };
+  au.onended = () => { if (repeat === 2) { au.currentTime = 0; start(); } else step(1, true); };
+  au.onloadedmetadata = () => { $('dur').textContent = fmt(au.duration); };
+  au.ontimeupdate = () => {
+    $('cur').textContent = fmt(au.currentTime);
+    const p = au.duration ? au.currentTime / au.duration * 1000 : 0;
+    $('seek').value = p; $('seek').style.setProperty('--p', p/10 + '%');
+  };
+  au.onerror = () => { if (idx >= 0) { $('sub').textContent = "Couldn't play this file"; } };
+  $('seek').oninput = e => { if (au.duration) au.currentTime = e.target.value / 1000 * au.duration; };
+  const setVol = v => { au.volume = v / 100; $('vol').style.setProperty('--p', v + '%'); };
+  $('vol').oninput = e => setVol(e.target.value); setVol(80);
+  $('play').onclick = toggle; $('next').onclick = () => step(1);
+  $('prev').onclick = () => { if (au.currentTime > 3) au.currentTime = 0; else step(-1); };
+  $('shuf').onclick = () => { shuffle = !shuffle; $('shuf').classList.toggle('on', shuffle); };
+  $('rep').onclick = () => { repeat = (repeat + 1) % 3; $('rep').classList.toggle('on', repeat > 0); $('rep').title = 'Repeat: ' + ['off','all','track'][repeat]; };
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space' && !/INPUT|BUTTON|TEXTAREA/.test(e.target.tagName)) { e.preventDefault(); toggle(); }
+  });
+  if ('mediaSession' in navigator) {
+    const m = navigator.mediaSession;
+    m.setActionHandler('play', start); m.setActionHandler('pause', () => au.pause());
+    m.setActionHandler('nexttrack', () => step(1)); m.setActionHandler('previoustrack', () => step(-1));
+  }
+
+  /* ---------- visualizer (uses the active site theme's accent) ---------- */
+  const cv = $('viz'), g = cv.getContext('2d');
+  function draw() {
+    raf = requestAnimationFrame(draw);
+    const r = cv.getBoundingClientRect(), dp = devicePixelRatio || 1;
+    if (cv.width !== Math.round(r.width * dp)) { cv.width = r.width * dp; cv.height = r.height * dp; }
+    const W = cv.width, c = W / 2, R = W * .35;
+    g.clearRect(0, 0, W, W);
+    if (an) an.getByteFrequencyData(data);
+    g.lineCap = 'round'; g.lineWidth = W * .012;
+    g.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#e8542c';
+    let live = false;
+    for (let i = 0; i < 64; i++) {
+      const v = an ? data[Math.floor(i / 64 * data.length * .75)] / 255 : 0; if (v > .01) live = true;
+      const a = i / 64 * Math.PI * 2 - Math.PI / 2, l = W * .015 + v * W * .12;
+      g.beginPath(); g.moveTo(c + Math.cos(a) * R * 1.12, c + Math.sin(a) * R * 1.12);
+      g.lineTo(c + Math.cos(a) * (R * 1.12 + l), c + Math.sin(a) * (R * 1.12 + l)); g.stroke();
+    }
+    if (au.paused && !live) { cancelAnimationFrame(raf); raf = 0; }
+  }
+  draw();
+  init();
+})();
+</script>
+</body>
+</html>
