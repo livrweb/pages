@@ -17,6 +17,8 @@ const ls = {
 };
 const SESSION = 'liverb-acct';
 const SECRETS = { egg: ['eggFound', 'eggFoundAt'], bigshot: ['bigshotFound', 'bigshotFoundAt'] };
+const FAVKEY = 'liverb-favs';
+const localFavs = () => { try { const a = JSON.parse(ls.get(FAVKEY)); return Array.isArray(a) ? a : []; } catch (e) { return []; } };
 const err = code => Object.assign(new Error(code), { code });
 
 export function localSecrets() {
@@ -77,12 +79,21 @@ export async function signIn(username, pw) {
   if (!record) throw err('bad-login');
   await open(u, key, record);
 }
-export function logout() { session = null; rec = null; ls.del(SESSION); notify(); }
+export function logout() { session = null; rec = null; ls.del(SESSION); ls.del(FAVKEY); notify(); }
 
 export const profile = async () => (await rest('GET', session.u, session.key)) || {};
 export const saveProfile = async patch => { await rest('PATCH', session.u, session.key, patch); };
 export const rename = async name => { name = name.trim().slice(0, 30) || session.u; await saveProfile({ name }); rec.name = name; notify(); };
 export const resetSecrets = async () => { Object.values(SECRETS).forEach(([f, a]) => { ls.del(f); ls.del(a); }); await saveProfile({ secrets: null }); };
+
+/* ---------- favorite songs (stored on the account) ---------- */
+export const favs = () => localFavs();
+export async function setFavs(list) {
+  if (!session || !rec) throw err('not-signed-in');
+  ls.set(FAVKEY, JSON.stringify(list));
+  rec.favs = list;
+  await rest('PATCH', session.u, session.key, { favs: list.length ? list : null });
+}
 
 export function friendly(e) {
   const m = {
@@ -109,7 +120,7 @@ function setNav(u) {
   if (location.pathname.startsWith('/account')) a.classList.add('active');
 }
 
-/* ---------- sync: secrets union + theme ---------- */
+/* ---------- sync: secrets union + favorites + theme ---------- */
 async function sync() {
   const cloud = rec || {}, patch = {}, loc = localSecrets();
   for (const k of Object.keys(SECRETS)) {
@@ -119,6 +130,9 @@ async function sync() {
     if (!c.found || c.at !== at) { patch['secrets/' + k] = { found: true, at }; rec.secrets = { ...(rec.secrets || {}), [k]: { found: true, at } }; }
     if (!loc[k].found) { ls.set(SECRETS[k][0], 'true'); ls.set(SECRETS[k][1], String(at)); }
   }
+  // favorites: the cloud copy wins; if the account has none yet, keep what's local
+  if (Array.isArray(cloud.favs)) ls.set(FAVKEY, JSON.stringify(cloud.favs));
+  else { const lf = localFavs(); if (lf.length) { patch.favs = lf; rec.favs = lf; } }
   const cur = document.documentElement.getAttribute('data-theme');
   if (cloud.theme && cloud.theme !== cur) {
     if (typeof window.applyTheme === 'function') window.applyTheme(cloud.theme);

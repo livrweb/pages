@@ -47,15 +47,21 @@
   .lib-tools .exp-search{ flex:1; }
   .count{ font-size:.72rem; color:var(--text-muted); white-space:nowrap; }
   .lib{ max-height:640px; overflow:auto; border:1px solid var(--edge); border-radius:8px; background:var(--surface); }
-  .alb > button{ width:100%; display:flex; align-items:baseline; justify-content:space-between; gap:12px; text-align:left; background:var(--surface-2); border:0; border-bottom:1px solid var(--edge); color:var(--text); font-family:'Fraunces',serif; font-size:.95rem; padding:10px 14px; cursor:pointer; position:sticky; top:0; z-index:1; }
+  .alb > button{ width:100%; display:flex; align-items:center; gap:8px; text-align:left; background:var(--surface-2); border:0; border-bottom:1px solid var(--edge); color:var(--text); font-family:'Fraunces',serif; font-size:.85rem; padding:7px 14px; cursor:pointer; position:sticky; top:0; z-index:1; }
+  .alb > button::before{ content:"▸"; font-size:.7rem; color:var(--text-muted); transition:transform .15s; }
+  .alb:not(.shut) > button::before{ transform:rotate(90deg); }
+  .alb > button b{ flex:1; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .alb > button span{ font-family:'IBM Plex Mono',monospace; font-size:.68rem; color:var(--text-muted); white-space:nowrap; }
-  .alb.shut .trks{ display:none; }
+  .alb.has-cur > button b{ color:var(--accent); }
+  .lib:not(.searching) .alb.shut .trks{ display:none; }
   .trk{ display:flex; align-items:center; gap:12px; padding:8px 14px; cursor:pointer; border-bottom:1px solid var(--edge); font-size:.78rem; }
   .trk:last-child{ border-bottom:0; }
   .trk:hover{ background:var(--surface-2); }
   .trk.cur{ background:var(--accent-dim); color:var(--accent); }
   .trk .t{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .trk .d{ color:var(--text-muted); font-size:.7rem; font-variant-numeric:tabular-nums; }
+  .trk .f{ background:none; border:0; color:var(--text-muted); cursor:pointer; font-size:1rem; line-height:1; padding:0 2px; }
+  .trk .f:hover, .trk .f.on{ color:var(--accent); }
   .trk[hidden], .alb[hidden]{ display:none; }
   .msg{ padding:22px; font-size:.8rem; color:var(--text-muted); text-align:center; }
 </style>
@@ -107,6 +113,7 @@
           <button id="play" class="play" aria-label="Play"><svg viewBox="0 0 24 24" id="pi"><path d="M8 5v14l11-7z"/></svg></button>
           <button id="next" aria-label="Next"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
           <button id="rep" aria-label="Repeat" title="Repeat: off"><svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg></button>
+          <button id="fav" aria-label="Favorite" title="Favorite"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.5-9.5-9C1 8.5 3 5 6.5 5c2 0 3.5 1 5.5 3 2-2 3.5-3 5.5-3C21 5 23 8.5 21.5 12 19 16.5 12 21 12 21z"/></svg></button>
         </div>
         <div class="vol"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0014 7.97v8.05c1.5-.7 2.5-2.2 2.5-4.02z"/></svg><input type="range" id="vol" min="0" max="100" value="80" aria-label="Volume"></div>
       </div>
@@ -131,13 +138,15 @@
 </footer>
 
 <script src="/assets/site.js"></script>
-<script type="module" src="/assets/auth.js"></script>
-<script>
+<script type="module">
+import { favs, setFavs, onUser, user } from '/assets/auth.js';
+
 (() => {
   const $ = id => document.getElementById(id), au = $('au');
   const BASE = (u => /\/[^\/.]*$/.test(u) ? u + '/' : u.replace(/[^\/]*$/, ''))(location.href.split(/[?#]/)[0]);
   const ICON = { play:'<path d="M8 5v14l11-7z"/>', pause:'<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>' };
   let tracks = [], idx = -1, shuffle = false, repeat = 0, ctx, an, data, raf;
+  let favSet = new Set(), openAlbums = new Set();
   const fmt = s => isFinite(s) && s > 0 ? Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2,'0') : '0:00';
 
   /* ---------- library ---------- */
@@ -152,7 +161,8 @@
     }
     tracks = list.map(x => {
       const folder = decodeURIComponent(x.file).split('/').slice(0, -1).join(' / ');
-      return { title: x.title || decodeURIComponent(x.file).split('/').pop().replace(/\.[^.]+$/, ''),
+      return { id: x.file,
+               title: x.title || decodeURIComponent(x.file).split('/').pop().replace(/\.[^.]+$/, ''),
                artist: x.artist || '', album: x.album || folder || 'Singles',
                url: new URL(x.file, BASE).href, dur: x.duration || 0 };
     });
@@ -160,39 +170,77 @@
     build();
   }
 
+  onUser(() => { favSet = new Set(favs()); if (tracks.length) build(); syncHeart(); });
+
+  function addAlbum(name, ids) {
+    const alb = document.createElement('div'); alb.className = 'alb' + (openAlbums.has(name) ? '' : ' shut');
+    alb.dataset.name = name;
+    const head = document.createElement('button'); head.type = 'button';
+    head.setAttribute('aria-expanded', openAlbums.has(name));
+    head.innerHTML = '<b></b><span>' + ids.length + '</span>';
+    head.firstChild.textContent = name;
+    head.onclick = () => {
+      const shut = alb.classList.toggle('shut');
+      shut ? openAlbums.delete(name) : openAlbums.add(name);
+      head.setAttribute('aria-expanded', !shut);
+    };
+    const wrap = document.createElement('div'); wrap.className = 'trks';
+    ids.forEach(i => {
+      const t = tracks[i], row = document.createElement('div');
+      row.className = 'trk'; row.tabIndex = 0; row.dataset.i = i;
+      row.dataset.s = (t.title + ' ' + t.artist + ' ' + t.album).toLowerCase();
+      row.innerHTML = '<span class="t"></span><button type="button" class="f" aria-label="Favorite"></button><span class="d">' + (t.dur ? fmt(t.dur) : '') + '</span>';
+      row.querySelector('.t').textContent = t.title;
+      const f = row.querySelector('.f');
+      f.textContent = favSet.has(t.id) ? '♥' : '♡'; f.classList.toggle('on', favSet.has(t.id));
+      f.onclick = e => { e.stopPropagation(); toggleFav(i); };
+      row.onclick = () => load(i, true);
+      row.onkeydown = e => { if (e.key === 'Enter' && e.target === row) load(i, true); };
+      wrap.appendChild(row);
+    });
+    alb.append(head, wrap); $('lib').appendChild(alb);
+  }
+
   function build() {
     const groups = new Map();
     tracks.forEach((t, i) => { (groups.get(t.album) || groups.set(t.album, []).get(t.album)).push(i); });
-    const lib = $('lib'); lib.innerHTML = '';
-    groups.forEach((ids, name) => {
-      const alb = document.createElement('div'); alb.className = 'alb';
-      const head = document.createElement('button'); head.type = 'button'; head.setAttribute('aria-expanded', 'true');
-      head.innerHTML = '<b style="font-weight:500"></b><span>' + ids.length + '</span>';
-      head.firstChild.textContent = name;
-      head.onclick = () => { const shut = alb.classList.toggle('shut'); head.setAttribute('aria-expanded', !shut); };
-      const wrap = document.createElement('div'); wrap.className = 'trks';
-      ids.forEach(i => {
-        const t = tracks[i], row = document.createElement('div');
-        row.className = 'trk'; row.tabIndex = 0; row.dataset.i = i;
-        row.dataset.s = (t.title + ' ' + t.artist + ' ' + t.album).toLowerCase();
-        row.innerHTML = '<span class="t"></span><span class="d">' + (t.dur ? fmt(t.dur) : '') + '</span>';
-        row.firstChild.textContent = t.title;
-        row.onclick = () => load(i, true);
-        row.onkeydown = e => { if (e.key === 'Enter') load(i, true); };
-        wrap.appendChild(row);
-      });
-      alb.append(head, wrap); lib.appendChild(alb);
-    });
+    $('lib').innerHTML = '';
+    const favIds = tracks.map((t, i) => i).filter(i => favSet.has(tracks[i].id));
+    if (favIds.length) addAlbum('♥ Favorites', favIds);
+    groups.forEach((ids, name) => addAlbum(name, ids));
+    applyFilter(); markCur();
   }
 
-  $('q').oninput = e => {
-    const q = e.target.value.trim().toLowerCase();
+  async function toggleFav(i) {
+    if (!user()) { showToast('Sign in to save favorites'); return; }
+    const id = tracks[i].id;
+    favSet.has(id) ? favSet.delete(id) : favSet.add(id);
+    build(); syncHeart();
+    try { await setFavs([...favSet]); } catch (e) { showToast("Couldn't save favorite"); }
+  }
+  function syncHeart() {
+    const on = idx >= 0 && favSet.has(tracks[idx].id);
+    $('fav').classList.toggle('on', on);
+  }
+  $('fav').onclick = () => { if (idx >= 0) toggleFav(idx); else showToast('Pick a song first'); };
+
+  function applyFilter() {
+    const q = $('q').value.trim().toLowerCase();
+    $('lib').classList.toggle('searching', !!q);
     document.querySelectorAll('.alb').forEach(a => {
       let any = false;
       a.querySelectorAll('.trk').forEach(r => { const m = !q || r.dataset.s.includes(q); r.hidden = !m; any = any || m; });
-      a.hidden = !any; if (q) a.classList.remove('shut');
+      a.hidden = !any;
     });
-  };
+  }
+  $('q').oninput = applyFilter;
+
+  function markCur() {
+    document.querySelectorAll('.trk.cur').forEach(r => r.classList.remove('cur'));
+    document.querySelectorAll('.alb.has-cur').forEach(a => a.classList.remove('has-cur'));
+    if (idx < 0) return;
+    document.querySelectorAll('.trk[data-i="' + idx + '"]').forEach(r => { r.classList.add('cur'); r.closest('.alb').classList.add('has-cur'); });
+  }
 
   /* ---------- playback ---------- */
   function load(i, play) {
@@ -201,9 +249,7 @@
     $('sub').textContent = [t.artist, t.album].filter(Boolean).join(' · ') || ' ';
     $('lab').textContent = t.title.trim().charAt(0).toUpperCase() || '♪';
     document.title = t.title + ' — Liver B';
-    document.querySelectorAll('.trk.cur').forEach(r => r.classList.remove('cur'));
-    const row = document.querySelector('.trk[data-i="' + i + '"]');
-    if (row) { row.classList.add('cur'); row.closest('.alb').classList.remove('shut'); row.scrollIntoView({ block:'nearest' }); }
+    markCur(); syncHeart();
     if ('mediaSession' in navigator) navigator.mediaSession.metadata = new MediaMetadata({ title:t.title, artist:t.artist, album:t.album });
     if (play) start();
   }
