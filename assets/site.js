@@ -549,7 +549,7 @@ console.log('%cLooking for the source? It is right here — view-source is right
 // Numbers with no matching image file are skipped automatically. Blank lines and
 // lines starting with # are ignored.
 const LOCAL_PHOTO_DIR = '/assets/photos/';   // absolute path — works from any page depth
-const PHOTO_COUNT = 31;                        // looks for 1.jpg ... 31.jpg
+const PHOTO_COUNT = 29;                        // looks for 1.jpg ... 29.jpg
 const photoFile = n => `${n}.jpg`;
 const localPhotos = Array.from({ length: PHOTO_COUNT }, (_, i) => i + 1);
 
