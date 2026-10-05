@@ -1,6 +1,5 @@
 # number: caption
 1: Sadie the Dog
-2: Beanie at the park!
 3: Sadie the Dog
 4: Sadie the Dog
 5: Sadie the Dog
@@ -10,3 +9,4 @@
 9: Took at Clinton Square Rochester NY
 11: Took at Martin Luther King Jr Park
 12: Took at Martin Luther King Jr Park
+29: Why the FUCK is he aura farming
