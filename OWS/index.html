@@ -8,6 +8,35 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/site.css">
+<link rel="icon" type="image/png" href="/icon.png">
+<style>
+  html,body{margin:0;overflow:hidden;background:#000}
+  body{font-family:'IBM Plex Mono',monospace;color:#fff}
+  nav{position:fixed!important;top:0;left:0;right:0;z-index:50}
+  .nav-backdrop{z-index:45}
+  canvas#game{position:fixed;inset:0;z-index:1;display:block}
+  #hud,#hpbar,#hptxt,#weapon,#cross,#hitflash,#msg,#menu{z-index:10}
+  #hud{position:fixed;top:calc(var(--navh,64px) + 10px);left:10px;font-size:18px;text-shadow:1px 1px 2px #000}
+  #hpbar{position:fixed;bottom:20px;left:20px;width:300px;height:22px;background:#300;border:2px solid #000}
+  #hpfill{height:100%;width:100%;background:#e33;transition:width .1s}
+  #hptxt{position:fixed;bottom:22px;left:30px;font-size:16px;text-shadow:1px 1px 2px #000}
+  #weapon{position:fixed;bottom:20px;right:20px;font-size:20px;text-align:right;text-shadow:1px 1px 2px #000}
+  #cross{position:fixed;top:50%;left:50%;width:6px;height:6px;margin:-3px;background:#fff;border-radius:50%}
+  #hitflash{position:fixed;inset:0;background:rgba(255,0,0,.35);opacity:0;pointer-events:none;transition:opacity .25s}
+  #msg{position:fixed;top:var(--navh,64px);left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(0,0,0,.6);cursor:pointer;text-align:center;line-height:1.6;color:#fff}
+  #menu{position:fixed;top:var(--navh,64px);left:0;right:0;bottom:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.75);color:#fff}
+  #panel{background:#1a1a1a;border:1px solid #444;padding:20px;width:360px;max-height:85vh;overflow:auto}
+  #panel h3{margin:0 0 10px;color:#fff}#panel h4{margin:14px 0 6px;color:#fff}
+  .tabs{display:flex;gap:6px;margin-bottom:12px}.tabs button{flex:1}
+  .tab{display:none}.tab.active{display:block}
+  #panel label{display:block;margin:8px 0 2px;font-size:13px;color:#aaa}
+  #panel input[type=range],#panel input[type=text],#panel input[type=password],#panel select{width:100%;box-sizing:border-box}
+  #panel input[type=text],#panel input[type=password]{padding:8px;margin:4px 0;background:#333;border:1px solid #555;color:#fff}
+  #panel button{padding:8px 12px;background:#444;color:#fff;border:1px solid #666;cursor:pointer;margin:4px 2px 0 0;font-family:inherit}
+  #panel button:hover{background:#555}
+  #status{color:#f88;font-size:13px;min-height:16px;margin-top:6px}
+  #board{padding-left:20px;font-size:14px}
+</style>
 </head>
 <body>
 
@@ -40,38 +69,416 @@
 </nav>
 <div class="nav-backdrop" id="nav-backdrop"></div>
 
-<header class="hero">
-  <div>
-    <h1>OWS</h1>
-    <p class="tagline">Liver B &middot; <b>OWS</b></p>
-    <p class="blurb">This is the home of OWS on the site.</p>
+<div id="hud"></div>
+<div id="hpbar"><div id="hpfill"></div></div><div id="hptxt"></div>
+<div id="weapon"></div>
+<div id="cross"></div>
+<div id="hitflash"></div>
+<div id="msg">Loading…</div>
+<div id="menu"><div id="panel">
+  <h3>Paused</h3>
+  <div class="tabs"><button data-t="tab-settings">Settings</button><button data-t="tab-account">Account</button></div>
+  <div class="tab active" id="tab-settings">
+    <label>Mouse sensitivity <span id="sensV"></span></label><input type="range" id="sens" min="0.5" max="3" step="0.1">
+    <label>Field of view <span id="fovV"></span></label><input type="range" id="fov" min="60" max="110" step="1">
+    <label>Screen shake <span id="shakeV"></span></label><input type="range" id="shake" min="0" max="2" step="0.1">
+    <label>Shadows</label><select id="shadows"><option value="1">On</option><option value="0">Off</option></select>
+    <label>Render distance <span id="fogV"></span></label><input type="range" id="fog" min="150" max="600" step="50">
+    <div id="best" style="margin-top:12px"></div>
+    <button id="resume">Resume (Esc)</button><button id="resetS">Reset defaults</button>
   </div>
-</header>
-
-<main>
-
-  <!-- OWS page content: replace the section below with the final OWS copy. -->
-  <section id="ows" class="reveal">
-    <div class="section-head">
-      <h2>OWS</h2>
-      <span>coming soon</span>
+  <div class="tab" id="tab-account">
+    <div id="loggedOut">
+      <input id="uname" type="text" placeholder="username" maxlength="20" autocomplete="username">
+      <input id="pass" type="password" placeholder="password" autocomplete="current-password">
+      <button id="signIn">Sign in</button><button id="signUp">Create account</button>
     </div>
-    <p style="color:var(--text-muted);font-size:.92rem;max-width:60ch;">
-      Content for this page is on its way.
-    </p>
-  </section>
+    <div id="loggedIn" style="display:none">
+      <div>Signed in as <b id="who"></b></div><div id="stats"></div>
+      <button id="signOut">Sign out</button>
+    </div>
+    <div id="status"></div>
+    <h4>Leaderboard</h4><ol id="board"></ol>
+  </div>
+</div></div>
 
-</main>
 <div class="toast" id="toast"></div>
-<div class="idle-whisper" id="idle-whisper"></div>
-<div class="disco-ball" id="disco-ball"></div>
-
-<footer>
-  &copy; Liver B — built and broken by hand
-  <div class="whisper" id="whisper"></div>
-</footer>
 
 <script src="/assets/site.js"></script>
-<script type="module" src="/assets/auth.js"></script>
+<script type="importmap">{"imports":{
+  "three":"https://unpkg.com/three@0.160.0/build/three.module.js"
+}}</script>
+<script type="module">
+import * as THREE from 'three';
+
+const $=id=>document.getElementById(id);
+
+// ====== NAV BAR HEIGHT ======
+const navEl=document.querySelector('nav');
+function measureNav(){document.documentElement.style.setProperty('--navh',navEl.offsetHeight+'px');}
+measureNav();addEventListener('resize',measureNav);
+navEl.addEventListener('mousedown',e=>e.stopPropagation(),true);
+navEl.addEventListener('click',e=>e.stopPropagation(),true);
+
+// ====== INLINE AUTH (mirrors /assets/auth.js) ======
+const Auth=(()=>{
+  const DB='https://randomass-d006a-default-rtdb.firebaseio.com',SESSION='liverb-acct';
+  const err=code=>Object.assign(new Error(code),{code});
+  const ls={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
+  let session=null,rec=null,ready=false;const subs=[];
+  try{session=JSON.parse(ls.get(SESSION))}catch(e){}
+  async function rest(method,u,key,body){
+    let r;try{r=await fetch(`${DB}/vault/${u}/${key}.json`,{method,headers:body?{'Content-Type':'application/json'}:undefined,body:body?JSON.stringify(body):undefined})}catch(e){throw err('NETWORK')}
+    if(!r.ok)throw err(r.status===401||r.status===403?'PERMISSION_DENIED':'NETWORK');return r.json();
+  }
+  async function deriveKey(u,pw){
+    if(!(window.crypto&&crypto.subtle))throw err('no-crypto');
+    const enc=new TextEncoder();
+    const base=await crypto.subtle.importKey('raw',enc.encode(pw),'PBKDF2',false,['deriveBits']);
+    const bits=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:enc.encode('liverb.v1:'+u),iterations:210000},base,256);
+    return btoa(String.fromCharCode(...new Uint8Array(bits))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  }
+  const normalize=s=>String(s||'').trim().toLowerCase(),validUser=u=>/^[a-z0-9_]{3,20}$/.test(u);
+  const userObj=()=>(session&&rec?{username:session.u,displayName:rec.name||session.u}:null);
+  const notify=()=>subs.forEach(f=>f(userObj()));
+  async function open(u,key,record){session={u,key};rec=record;ls.set(SESSION,JSON.stringify(session));notify();}
+  async function signUp(username,pw){
+    const u=normalize(username);if(!validUser(u))throw err('bad-username');if(!pw||pw.length<6)throw err('weak-password');
+    const key=await deriveKey(u,pw),record={name:u,created:Date.now()};
+    await rest('PUT',u,key,record);await open(u,key,record);
+  }
+  async function signIn(username,pw){
+    const u=normalize(username);if(!validUser(u)||!pw)throw err('bad-login');
+    const key=await deriveKey(u,pw),record=await rest('GET',u,key);
+    if(!record)throw err('bad-login');await open(u,key,record);
+  }
+  function logout(){session=null;rec=null;ls.del(SESSION);notify();}
+  const profile=async()=>(await rest('GET',session.u,session.key))||{};
+  const saveProfile=async patch=>{await rest('PATCH',session.u,session.key,patch)};
+  const friendly=e=>({'bad-username':'Usernames are 3–20 letters, numbers or underscores.','weak-password':'Password needs at least 6 characters.','bad-login':'Wrong username or password.','PERMISSION_DENIED':'That username is taken, or the database rules aren\'t set up yet.','NETWORK':'Couldn\'t reach the database.','no-crypto':'Accounts need a secure (https) page.'})[e&&e.code]||'Something went wrong. Try again.';
+  const onUser=cb=>{subs.push(cb);if(ready)cb(userObj())};
+  (async()=>{
+    if(session&&session.u&&session.key){try{const r=await rest('GET',session.u,session.key);if(r)rec=r;else{session=null;ls.del(SESSION)}}catch(e){}}
+    ready=true;notify();
+  })();
+  return{signUp,signIn,logout,profile,saveProfile,friendly,onUser,user:userObj};
+})();
+
+// ====== SETTINGS ======
+const DEF={sens:1,fov:75,shake:1,shadows:1,fog:400};
+let S={...DEF,...JSON.parse(localStorage.getItem('ows-settings')||'{}')};
+let me=null;
+
+// ====== SCENE ======
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x87b5e0);
+scene.fog=new THREE.Fog(0x87b5e0,60,S.fog);
+const camera=new THREE.PerspectiveCamera(S.fov,innerWidth/innerHeight,.1,1000);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.domElement.id='game';
+renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;
+document.body.appendChild(renderer.domElement);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x446633,.6));
+const sun=new THREE.DirectionalLight(0xffffff,1);
+sun.position.set(100,200,50);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-200,right:200,top:200,bottom:-200,far:500});
+scene.add(sun);scene.add(sun.target);
+
+function applySettings(){
+  camera.fov=S.fov;camera.updateProjectionMatrix();
+  scene.fog.far=S.fog;renderer.shadowMap.enabled=!!+S.shadows;sun.castShadow=!!+S.shadows;
+  for(const k of ['sens','fov','shake','fog']){$(k).value=S[k];$(k+'V').textContent=S[k];}
+  $('shadows').value=S.shadows;
+}
+function saveSettings(){
+  localStorage.setItem('ows-settings',JSON.stringify(S));
+  if(me)Auth.saveProfile({'shooter/settings':S}).catch(()=>{});
+}
+for(const k of ['sens','fov','shake','fog','shadows']){
+  $(k).oninput=()=>{S[k]=+$(k).value;applySettings();saveSettings();};
+}
+$('resetS').onclick=()=>{S={...DEF};applySettings();saveSettings();};
+
+// Terrain
+const SIZE=800,SEG=128;
+const geo=new THREE.PlaneGeometry(SIZE,SIZE,SEG,SEG);geo.rotateX(-Math.PI/2);
+const h=(x,z)=>Math.sin(x*.02)*4+Math.cos(z*.025)*4+Math.sin((x+z)*.01)*6;
+const pos=geo.attributes.position;
+for(let i=0;i<pos.count;i++)pos.setY(i,h(pos.getX(i),pos.getZ(i)));
+geo.computeVertexNormals();
+const ground=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({color:0x4f8a3a}));
+ground.receiveShadow=true;scene.add(ground);
+
+// World objects
+const obstacles=[];const rnd=(a,b)=>a+Math.random()*(b-a);
+function addTree(x,z){
+  const y=h(x,z);
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.4,.6,5),new THREE.MeshLambertMaterial({color:0x5a3b1e}));
+  trunk.position.set(x,y+2.5,z);trunk.castShadow=true;
+  const top=new THREE.Mesh(new THREE.ConeGeometry(3,8,8),new THREE.MeshLambertMaterial({color:0x1f6b2a}));
+  top.position.set(x,y+8,z);top.castShadow=true;
+  scene.add(trunk,top);obstacles.push({x,z,r:1});
+}
+function addRock(x,z){
+  const s=rnd(1,3);
+  const r=new THREE.Mesh(new THREE.DodecahedronGeometry(s),new THREE.MeshLambertMaterial({color:0x777777}));
+  r.position.set(x,h(x,z)+s*.5,z);r.castShadow=true;scene.add(r);obstacles.push({x,z,r:s});
+}
+function addBuilding(x,z){
+  const w=rnd(6,14),d=rnd(6,14),ht=rnd(6,20);
+  const b=new THREE.Mesh(new THREE.BoxGeometry(w,ht,d),new THREE.MeshLambertMaterial({color:new THREE.Color().setHSL(rnd(0,1),.2,rnd(.4,.7))}));
+  b.position.set(x,h(x,z)+ht/2,z);b.castShadow=true;b.receiveShadow=true;scene.add(b);
+  obstacles.push({x,z,r:Math.max(w,d)/2});
+}
+
+// ====== PLAYER ======
+const player={x:0,z:0,y:0,vy:0,vx:0,vz:0,grounded:true,hp:100,maxHp:100,score:0,kills:0,reloading:0};
+let yaw=0,pitch=-.2;const keys={};let mouseDown=false,paused=false,started=false,shakeT=0;
+const playerRoot=new THREE.Group();scene.add(playerRoot);
+const hand=new THREE.Group();hand.position.set(.35,1.3,-.2);playerRoot.add(hand);
+const gun=new THREE.Group();hand.add(gun);
+function buildPlayer(){
+  const body=new THREE.Mesh(new THREE.CapsuleGeometry(.4,1,4,8),new THREE.MeshLambertMaterial({color:0x2266cc}));
+  body.position.y=.9;body.castShadow=true;
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.25),new THREE.MeshLambertMaterial({color:0xffcc99}));
+  head.position.y=1.75;playerRoot.add(body,head);
+}
+
+// ====== WEAPONS ======
+const WEAPONS=[
+  {name:'Pistol',dmg:1,mag:12,ammo:12,reserve:60,rate:.25,spread:.01,pellets:1,auto:false,reloadT:1},
+  {name:'Rifle',dmg:1,mag:30,ammo:30,reserve:120,rate:.09,spread:.025,pellets:1,auto:true,reloadT:1.6},
+  {name:'Shotgun',dmg:1,mag:6,ammo:6,reserve:30,rate:.8,spread:.06,pellets:8,auto:false,reloadT:2},
+  {name:'Katana',dmg:999,melee:true,rate:.45,range:3.2}
+];
+let cur=0;const W=()=>WEAPONS[cur];
+let recoil=0,swing=0;const tracers=[];
+function buildGun(){
+  while(gun.children.length)gun.remove(gun.children[0]);
+  const w=W();
+  const mat=new THREE.MeshLambertMaterial({color:w.melee?0xdddddd:0x222222});
+  const g=w.melee?new THREE.BoxGeometry(.04,.04,1.1):w.name==='Pistol'?new THREE.BoxGeometry(.08,.14,.3):w.name==='Rifle'?new THREE.BoxGeometry(.08,.14,.8):new THREE.BoxGeometry(.1,.14,.7);
+  const mesh=new THREE.Mesh(g,mat);mesh.position.z=-(g.parameters.depth/2);mesh.castShadow=true;gun.add(mesh);
+}
+function switchTo(i){cur=(i+WEAPONS.length)%WEAPONS.length;player.reloading=0;buildGun();}
+function reload(){const w=W();if(w.melee||player.reloading>0||w.ammo===w.mag||w.reserve<=0)return;player.reloading=w.reloadT;}
+
+// ====== ENEMIES (blobs) ======
+const enemies=[];
+function spawnEnemy(){
+  const a=Math.random()*Math.PI*2,dist=rnd(40,120);
+  const x=player.x+Math.cos(a)*dist,z=player.z+Math.sin(a)*dist;
+  const root=new THREE.Group();root.position.set(x,h(x,z),z);scene.add(root);
+  const b=new THREE.Mesh(new THREE.CapsuleGeometry(.4,1,4,8),new THREE.MeshLambertMaterial({color:0xcc2222,emissive:0x000000}));
+  b.position.y=.9;b.castShadow=true;root.add(b);
+  const hitbox=new THREE.Mesh(new THREE.CapsuleGeometry(.5,1,4,8),new THREE.MeshBasicMaterial({visible:false}));hitbox.position.y=.9;root.add(hitbox);
+  enemies.push({root,hitbox,parts:[b],hp:3,speed:rnd(4,7),cd:0});
+}
+function damage(en,dmg){
+  en.hp-=dmg;
+  for(const p of en.parts){const c=p.material.emissive;const old=c.getHex();c.setHex(0xffffff);setTimeout(()=>c.setHex(old),60);}
+  if(en.hp<=0){scene.remove(en.root);enemies.splice(enemies.indexOf(en),1);player.score+=100;player.kills++;}
+}
+function hurt(n){
+  player.hp-=n;shakeT=.35;
+  const f=$('hitflash');f.style.opacity=1;setTimeout(()=>f.style.opacity=0,80);
+}
+
+// ====== SHOOTING ======
+const raycaster=new THREE.Raycaster();
+function shoot(){
+  const w=W();if(w.cd>0||player.reloading>0||paused)return;
+  w.cd=w.rate;
+  if(w.melee){
+    swing=.3;
+    for(const en of [...enemies]){
+      const p=en.root.position,dx=p.x-player.x,dz=p.z-player.z,d=Math.hypot(dx,dz);
+      if(d>w.range)continue;
+      const ang=Math.atan2(-dx,-dz);let diff=Math.abs(ang-yaw)%(Math.PI*2);if(diff>Math.PI)diff=Math.PI*2-diff;
+      if(diff<1.1)damage(en,999);
+    }
+    return;
+  }
+  if(w.ammo<=0){reload();return;}
+  w.ammo--;recoil=w.pellets>1?.25:.12;
+  const meshes=enemies.map(e=>e.hitbox);
+  const origin=hand.getWorldPosition(new THREE.Vector3());
+  for(let p=0;p<w.pellets;p++){
+    raycaster.setFromCamera(new THREE.Vector2(rnd(-w.spread,w.spread),rnd(-w.spread,w.spread)),camera);
+    raycaster.near=camera.position.distanceTo(new THREE.Vector3(player.x,player.y+1.2,player.z));
+    raycaster.far=300;
+    const hits=raycaster.intersectObjects(meshes);
+    const end=hits.length?hits[0].point:raycaster.ray.at(200,new THREE.Vector3());
+    const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([origin,end]),new THREE.LineBasicMaterial({color:0xffee88}));
+    scene.add(line);tracers.push({line,t:.07});
+    if(hits.length){const en=enemies.find(e=>e.hitbox===hits[0].object);if(en)damage(en,w.dmg);}
+  }
+  raycaster.near=0;
+}
+function collide(){
+  for(const o of obstacles){
+    const dx=player.x-o.x,dz=player.z-o.z,d=Math.hypot(dx,dz),min=o.r+.5;
+    if(d<min&&d>0){player.x=o.x+dx/d*min;player.z=o.z+dz/d*min;}
+  }
+}
+
+// ====== INPUT ======
+const msg=$('msg'),menu=$('menu');
+addEventListener('keydown',e=>{
+  keys[e.code]=true;
+  if(e.code==='Escape'&&started)return;
+  if(e.code==='KeyR')reload();
+  if(e.code.startsWith('Digit')){const n=+e.code.slice(5);if(n>=1&&n<=4)switchTo(n-1);}
+});
+addEventListener('keyup',e=>keys[e.code]=false);
+addEventListener('wheel',e=>{if(document.pointerLockElement)switchTo(cur+(e.deltaY>0?1:-1));});
+addEventListener('mousedown',e=>{if(e.button===0&&document.pointerLockElement){mouseDown=true;shoot();}});
+addEventListener('mouseup',()=>mouseDown=false);
+addEventListener('mousemove',e=>{
+  if(!document.pointerLockElement)return;
+  yaw-=e.movementX*.002*S.sens;pitch-=e.movementY*.002*S.sens;
+  pitch=Math.max(-1.2,Math.min(.9,pitch));
+});
+function setPaused(p){
+  paused=p;menu.style.display=p?'flex':'none';
+  if(p){document.exitPointerLock();loadBoard();}
+  else renderer.domElement.requestPointerLock();
+}
+document.addEventListener('pointerlockchange',()=>{
+  if(!document.pointerLockElement&&started&&player.hp>0&&!paused)setPaused(true);
+  mouseDown=false;
+});
+$('resume').onclick=()=>setPaused(false);
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));$(b.dataset.t).classList.add('active');
+});
+function status(t){$('status').textContent=t;}
+
+// ====== ACCOUNT / LEADERBOARD ======
+const DB='https://randomass-d006a-default-rtdb.firebaseio.com';
+let best=+(localStorage.getItem('ows-best')||0),cloudKills=0;
+function showBest(){$('best').textContent=`Best score: ${best}`;}
+async function loadBoard(){
+  try{
+    const r=await fetch(`${DB}/shooterScores.json?orderBy="score"&limitToLast=10`);
+    const d=await r.json()||{};
+    const rows=Object.values(d).sort((a,b)=>b.score-a.score);
+    $('board').innerHTML=rows.map(x=>`<li>${String(x.name).replace(/[<>&]/g,'')} — ${x.score}</li>`).join('')||'<li>No scores yet</li>';
+  }catch(e){$('board').innerHTML='<li>Leaderboard offline</li>';}
+}
+async function submitScore(){
+  if(player.score>best){best=player.score;localStorage.setItem('ows-best',best);}
+  showBest();
+  if(!me)return;
+  try{
+    const p=await Auth.profile(),g=p.shooter||{};
+    cloudKills=(g.kills||0)+player.kills;const b=Math.max(g.best||0,player.score);
+    await Auth.saveProfile({shooter:{best:b,kills:cloudKills,settings:S}});
+    await fetch(`${DB}/shooterScores/${me.username}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:me.displayName,score:b})});
+    $('stats').textContent=`Best ${best} · Total kills ${cloudKills}`;loadBoard();
+  }catch(e){status('Score save failed');}
+}
+function setNavLink(u){
+  let a=$('acct-link');
+  if(!a){const li=document.createElement('li');li.innerHTML='<a href="/account/" id="acct-link"></a>';
+    const ul=$('nav-links');ul.insertBefore(li,ul.querySelector('.void-link')||null);a=li.firstChild;}
+  a.textContent=u?u.displayName.slice(0,14):'Sign in';
+  if(!u){a.href='#';a.onclick=e=>{e.preventDefault();if(started){setPaused(true);}document.querySelector('[data-t="tab-account"]').click();};}
+  else{a.href='/account/';a.onclick=null;}
+  measureNav();
+}
+Auth.onUser(async u=>{
+  me=u;setNavLink(u);
+  $('loggedOut').style.display=u?'none':'block';$('loggedIn').style.display=u?'block':'none';
+  if(u){
+    $('who').textContent=u.displayName;status('');
+    try{const g=(await Auth.profile()).shooter||{};
+      if(g.settings){S={...DEF,...g.settings};applySettings();}
+      best=Math.max(best,g.best||0);cloudKills=g.kills||0;
+      $('stats').textContent=`Best ${best} · Total kills ${cloudKills}`;showBest();
+    }catch(e){}
+  }
+  loadBoard();
+});
+$('signIn').onclick=()=>Auth.signIn($('uname').value,$('pass').value).catch(e=>status(Auth.friendly(e)));
+$('signUp').onclick=()=>Auth.signUp($('uname').value,$('pass').value).catch(e=>status(Auth.friendly(e)));
+$('signOut').onclick=()=>Auth.logout();
+$('pass').onkeydown=e=>{if(e.key==='Enter')$('signIn').click();};
+
+// ====== LOOP ======
+const hud=$('hud'),hpfill=$('hpfill'),hptxt=$('hptxt'),weaponEl=$('weapon');
+const clock=new THREE.Clock();let spawnT=0,gameOver=false;
+const EYE=1.5,CAM_BACK=4,CAM_SIDE=.8;
+function loop(){
+  requestAnimationFrame(loop);
+  const dt=Math.min(clock.getDelta(),.05);
+  const w=W();w.cd=Math.max(0,(w.cd||0)-dt);
+  let moving=false;
+  if(player.hp>0&&!paused&&document.pointerLockElement){
+    if(mouseDown&&w.auto)shoot();
+    const sprint=keys.ShiftLeft,sp=sprint?14:7;
+    const f=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),r=new THREE.Vector3(-f.z,0,f.x);
+    const mv=new THREE.Vector3();
+    if(keys.KeyW)mv.add(f);if(keys.KeyS)mv.sub(f);if(keys.KeyD)mv.add(r);if(keys.KeyA)mv.sub(r);
+    moving=mv.lengthSq()>0;
+    if(moving)mv.normalize().multiplyScalar(sp);
+    if(player.grounded){player.vx=mv.x;player.vz=mv.z;}
+    else{player.vx+=mv.x*dt*1.5;player.vz+=mv.z*dt*1.5;}
+    player.x=Math.max(-390,Math.min(390,player.x+player.vx*dt));player.z=Math.max(-390,Math.min(390,player.z+player.vz*dt));
+    collide();
+    const gy=h(player.x,player.z);
+    if(keys.Space&&player.grounded){
+      player.vy=sprint?10:8;player.grounded=false;
+      if(sprint&&moving){player.vx*=1.4;player.vz*=1.4;}
+    }
+    player.vy-=25*dt;player.y+=player.vy*dt;
+    if(player.y<=gy+(player.vy<=0?.3:0)&&player.vy<=0){player.y=gy;player.vy=0;player.grounded=true;}
+    else player.grounded=false;
+    if(player.reloading>0){player.reloading-=dt;if(player.reloading<=0){const take=Math.min(w.mag-w.ammo,w.reserve);w.ammo+=take;w.reserve-=take;player.reloading=0;}}
+    spawnT-=dt;if(spawnT<=0&&enemies.length<15){spawnEnemy();spawnT=rnd(1,2.5);}
+    for(const e of enemies){
+      const p=e.root.position,dx=player.x-p.x,dz=player.z-p.z,d=Math.hypot(dx,dz);
+      if(d>2){p.x+=dx/d*e.speed*dt;p.z+=dz/d*e.speed*dt;}
+      p.y=h(p.x,p.z);e.root.lookAt(player.x,p.y,player.z);
+      e.cd-=dt;if(d<2.5&&e.cd<=0){hurt(10);e.cd=1;}
+    }
+    if(player.hp<=0&&!gameOver){
+      gameOver=true;document.exitPointerLock();
+      msg.style.display='flex';msg.innerHTML=`GAME OVER<br>Score ${player.score} · Kills ${player.kills}<br><small>Click to retry</small>`;
+      msg.onclick=()=>location.reload();submitScore();
+    }
+  }
+  for(let i=tracers.length-1;i>=0;i--){tracers[i].t-=dt;if(tracers[i].t<=0){scene.remove(tracers[i].line);tracers.splice(i,1);}}
+  playerRoot.position.set(player.x,player.y,player.z);playerRoot.rotation.y=yaw+Math.PI;
+  recoil=Math.max(0,recoil-dt);swing=Math.max(0,swing-dt);
+  hand.rotation.set(pitch+recoil*2,0,0);hand.position.z=-.2+recoil;
+  if(swing>0){const t=swing/.3;hand.rotation.set(-Math.sin(t*Math.PI)*1.2+pitch,0,-Math.sin(t*Math.PI)*1.5);}
+  const target=new THREE.Vector3(player.x,player.y+EYE,player.z);
+  const back=new THREE.Vector3(Math.sin(yaw)*Math.cos(pitch),-Math.sin(pitch),Math.cos(yaw)*Math.cos(pitch));
+  const side=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+  const cp=target.clone().addScaledVector(back,CAM_BACK).addScaledVector(side,CAM_SIDE);
+  cp.y=Math.max(cp.y,h(cp.x,cp.z)+.4);
+  if(shakeT>0){shakeT-=dt;const a=shakeT*.6*S.shake;cp.x+=(Math.random()-.5)*a;cp.y+=(Math.random()-.5)*a;cp.z+=(Math.random()-.5)*a;}
+  camera.position.copy(cp);
+  camera.lookAt(target.clone().addScaledVector(side,CAM_SIDE).addScaledVector(back,-10));
+  sun.position.set(player.x+100,200,player.z+50);sun.target.position.set(player.x,0,player.z);sun.target.updateMatrixWorld();
+  const hp=Math.max(0,player.hp);
+  hpfill.style.width=(hp/player.maxHp*100)+'%';hptxt.textContent=`HP ${hp}/${player.maxHp}`;
+  weaponEl.innerHTML=`[${cur+1}] ${w.name}<br>${w.melee?'∞':`${w.ammo} / ${w.reserve}`}${player.reloading>0?'<br><small>reloading…</small>':''}`;
+  hud.innerHTML=`SCORE ${player.score} &nbsp; KILLS ${player.kills} &nbsp; ENEMIES ${enemies.length}`;
+  renderer.render(scene,camera);
+}
+
+// ====== BOOT ======
+buildPlayer();buildGun();applySettings();showBest();
+for(let i=0;i<300;i++)addTree(rnd(-380,380),rnd(-380,380));
+for(let i=0;i<80;i++)addRock(rnd(-380,380),rnd(-380,380));
+for(let i=0;i<40;i++){const x=rnd(-300,300),z=rnd(-300,300);if(Math.hypot(x,z)>25)addBuilding(x,z);}
+msg.innerHTML='Click to play<br><small>WASD move · Shift sprint · Space jump (sprint+jump = long jump) · Click shoot/slash · R reload<br>1 Pistol · 2 Rifle · 3 Shotgun · 4 Katana (or scroll) · Esc settings &amp; account</small>';
+msg.onclick=()=>{started=true;msg.style.display='none';renderer.domElement.requestPointerLock();};
+loop();
+</script>
 </body>
 </html>
