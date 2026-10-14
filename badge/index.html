@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kris — Deltarune</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Fraunces:wght@500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #000000;
+      --text: #ffffff;
+      --text-muted: #cccccc;
+      --accent: #e8542c;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg) url('https://deltarune.com/assets/images/key-art.gif') center/cover no-repeat;
+      color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    main {
+      position: relative;
+      z-index: 1;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 72px 28px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 72px;
+      align-items: center;
+    }
+
+    .hero-content h1 {
+      font-family: 'Fraunces', serif;
+      font-weight: 600;
+      font-size: 3.2rem;
+      letter-spacing: -.02em;
+      margin: 0 0 20px 0;
+      line-height: 1.1;
+    }
+
+    .hero-subtitle {
+      font-family: 'Fraunces', serif;
+      font-weight: 500;
+      font-size: 1.8rem;
+      letter-spacing: -.01em;
+      color: var(--text);
+      margin: 0 0 32px 0;
+    }
+
+    .hero-text {
+      font-size: .95rem;
+      color: var(--text-muted);
+      line-height: 1.8;
+      max-width: 50ch;
+      margin-bottom: 40px;
+    }
+
+    .hero-image {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .hero-image img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .cta-button {
+      display: inline-block;
+      background: var(--accent);
+      color: white;
+      text-decoration: none;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: .85rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 14px 28px;
+      border-radius: 4px;
+      transition: opacity .2s ease, transform .2s ease;
+    }
+
+    .cta-button:hover {
+      opacity: .85;
+      transform: translateY(-2px);
+    }
+
+    @media (max-width: 1024px) {
+      main {
+        grid-template-columns: 1fr;
+        gap: 52px;
+        padding: 52px 28px;
+      }
+
+      .hero-content h1 {
+        font-size: 2.4rem;
+      }
+
+      .hero-subtitle {
+        font-size: 1.4rem;
+      }
+
+      .hero-image {
+        order: -1;
+      }
+    }
+
+    @media (max-width: 640px) {
+      main {
+        padding: 40px 20px;
+        gap: 40px;
+      }
+
+      .hero-content h1 {
+        font-size: 1.8rem;
+      }
+
+      .hero-subtitle {
+        font-size: 1.2rem;
+      }
+
+      .hero-text {
+        font-size: .9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="hero-content">
+      <h1>Kris</h1>
+      <img src="https://deltarune.com/assets/images/logo.png" alt="Deltarune" style="max-width: 300px; height: auto; margin: 0 0 32px 0; display: block;" />
+      <p class="hero-text">This is who you are looking for this 2026 Halloween.</p>
+      <a href="https://deltarune.com" class="cta-button">Learn More →</a>
+    </div>
+
+    <div class="hero-image">
+      <img src="https://static.wikia.nocookie.net/deltarune/images/e/ee/Kris_overworld_static.png/revision/latest?cb=20260713211914" alt="Kris from Deltarune" />
+    </div>
+  </main>
+</body>
+</html>
