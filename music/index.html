@@ -145,6 +145,7 @@ import { favs, setFavs, onUser, user } from '/assets/auth.js';
 (() => {
   const $ = id => document.getElementById(id), au = $('au');
   const BASE = (u => /\/[^\/.]*$/.test(u) ? u + '/' : u.replace(/[^\/]*$/, ''))(location.href.split(/[?#]/)[0]);
+  const ASSETS_BASE = 'https://assets.liversprojects.uk/';
   const ICON = { play:'<path d="M8 5v14l11-7z"/>', pause:'<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>' };
   let tracks = [], idx = -1, shuffle = false, repeat = 0, ctx, an, data, raf;
   let favSet = new Set(), openAlbums = new Set();
@@ -154,18 +155,19 @@ import { favs, setFavs, onUser, user } from '/assets/auth.js';
   async function init() {
     let list = [];
     try {
-      const r = await fetch(BASE + 'tracks.json'); if (!r.ok) throw 0;
+      let r = await fetch(BASE + 'tracks.json'); if (!r.ok) r = await fetch(ASSETS_BASE + 'tracks.json'); if (!r.ok) throw 0;
       list = await r.json();
     } catch (e) {
       $('lib').innerHTML = '<div class="msg">Couldn\'t load tracks.json. Run the "Build music/tracks.json" action once from the Actions tab.</div>';
       return;
     }
     tracks = list.map(x => {
-      const folder = decodeURIComponent(x.file).split('/').slice(0, -1).join(' / ');
+      const clean = x.file.replace(/^https?:\/\/[^\/]+\//, '');
+      const folder = decodeURIComponent(clean).split('/').slice(0, -1).join(' / ');
       return { id: x.file,
-               title: x.title || decodeURIComponent(x.file).split('/').pop().replace(/\.[^.]+$/, ''),
+               title: x.title || decodeURIComponent(clean).split('/').pop().replace(/\.[^.]+$/, ''),
                artist: x.artist || '', album: x.album || folder || 'Singles',
-               url: new URL(x.file, BASE).href, dur: x.duration || 0 };
+               url: new URL(x.file, ASSETS_BASE).href, dur: x.duration || 0 };
     });
     $('count').textContent = tracks.length + ' songs';
     build();
