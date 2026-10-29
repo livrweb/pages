@@ -146,28 +146,47 @@ import { favs, setFavs, onUser, user } from '/assets/auth.js';
   const $ = id => document.getElementById(id), au = $('au');
   const BASE = (u => /\/[^\/.]*$/.test(u) ? u + '/' : u.replace(/[^\/]*$/, ''))(location.href.split(/[?#]/)[0]);
   const ASSETS_BASE = 'https://assets.liversprojects.uk/';
+  let workingBase = ASSETS_BASE;
   const ICON = { play:'<path d="M8 5v14l11-7z"/>', pause:'<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>' };
   let tracks = [], idx = -1, shuffle = false, repeat = 0, ctx, an, data, raf;
   let favSet = new Set(), openAlbums = new Set();
+  let corsMode = true, webAudioActive = false;
+  let candidates = [], candIdx = 0;
   const fmt = s => isFinite(s) && s > 0 ? Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2,'0') : '0:00';
 
   /* ---------- library ---------- */
   async function init() {
     let list = [];
-    try {
-      let r = await fetch(BASE + 'tracks.json'); if (!r.ok) r = await fetch(ASSETS_BASE + 'tracks.json'); if (!r.ok) throw 0;
-      list = await r.json();
-    } catch (e) {
+    const jsonSources = [
+      BASE + 'tracks.json',
+      ASSETS_BASE + 'tracks.json',
+      ASSETS_BASE + 'music/tracks.json',
+      'https://liversprojects.uk/music/tracks.json'
+    ];
+    for (const url of jsonSources) {
+      try {
+        const r = await fetch(url);
+        if (r.ok) {
+          list = await r.json();
+          if (Array.isArray(list) && list.length) break;
+        }
+      } catch (e) {}
+    }
+    if (!list || !list.length) {
       $('lib').innerHTML = '<div class="msg">Couldn\'t load tracks.json. Run the "Build music/tracks.json" action once from the Actions tab.</div>';
       return;
     }
     tracks = list.map(x => {
-      const clean = x.file.replace(/^https?:\/\/[^\/]+\//, '');
+      const clean = x.file.replace(/^https?:\/\/[^\/]+\//, '').replace(/^\/+/, '');
       const folder = decodeURIComponent(clean).split('/').slice(0, -1).join(' / ');
-      return { id: x.file,
-               title: x.title || decodeURIComponent(clean).split('/').pop().replace(/\.[^.]+$/, ''),
-               artist: x.artist || '', album: x.album || folder || 'Singles',
-               url: new URL(x.file, ASSETS_BASE).href, dur: x.duration || 0 };
+      return {
+        id: x.file,
+        file: clean,
+        title: x.title || decodeURIComponent(clean).split('/').pop().replace(/\.[^.]+$/, ''),
+        artist: x.artist || '',
+        album: x.album || folder || 'Singles',
+        dur: x.duration || 0
+      };
     });
     $('count').textContent = tracks.length + ' songs';
     build();
@@ -246,31 +265,102 @@ import { favs, setFavs, onUser, user } from '/assets/auth.js';
   }
 
   /* ---------- playback ---------- */
+  function getUrls(file) {
+    const clean = file.replace(/^https?:\/\/[^\/]+\//, '').replace(/^\/+/, '');
+    const cleanNoMusic = clean.replace(/^music\//, '');
+    const list = [
+      workingBase + cleanNoMusic,
+      ASSETS_BASE + cleanNoMusic,
+      ASSETS_BASE + 'music/' + cleanNoMusic,
+      'https://liversprojects.uk/music/' + cleanNoMusic
+    ];
+    return [...new Set(list)];
+  }
+
   function load(i, play) {
-    idx = i; const t = tracks[i]; au.src = t.url;
+    idx = i;
+    const t = tracks[i];
+    candidates = getUrls(t.file);
+    candIdx = 0;
     $('title').textContent = t.title;
     $('sub').textContent = [t.artist, t.album].filter(Boolean).join(' · ') || ' ';
     $('lab').textContent = t.title.trim().charAt(0).toUpperCase() || '♪';
     document.title = t.title + ' — Liver B';
-    markCur(); syncHeart();
+    markCur();
+    syncHeart();
     if ('mediaSession' in navigator) navigator.mediaSession.metadata = new MediaMetadata({ title:t.title, artist:t.artist, album:t.album });
+    tryPlayCurrent(play);
+  }
+
+  function tryPlayCurrent(play) {
+    if (candIdx >= candidates.length) {
+      if (idx >= 0) $('sub').textContent = "Couldn't play this file (404 or connection error)";
+      return;
+    }
+    const url = candidates[candIdx];
+    if (corsMode) {
+      au.crossOrigin = 'anonymous';
+    } else {
+      au.removeAttribute('crossorigin');
+    }
+    au.src = url;
     if (play) start();
   }
+
   function initAudio() {
-    if (ctx) return;
-    ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const src = ctx.createMediaElementSource(au);
-    an = ctx.createAnalyser(); an.fftSize = 256; an.smoothingTimeConstant = .8;
-    src.connect(an); an.connect(ctx.destination); data = new Uint8Array(an.frequencyBinCount);
+    if (webAudioActive || !corsMode) return;
+    try {
+      if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (!an) {
+        const src = ctx.createMediaElementSource(au);
+        an = ctx.createAnalyser();
+        an.fftSize = 256;
+        an.smoothingTimeConstant = 0.8;
+        src.connect(an);
+        an.connect(ctx.destination);
+        data = new Uint8Array(an.frequencyBinCount);
+        webAudioActive = true;
+      }
+    } catch (e) {
+      console.warn('Web Audio attachment skipped:', e);
+    }
   }
-  function start() { initAudio(); ctx.resume(); au.play().catch(() => {}); }
-  function toggle() { if (idx < 0) { if (tracks.length) load(0, true); return; } au.paused ? start() : au.pause(); }
+
+  function start() {
+    if (corsMode && !webAudioActive) initAudio();
+    if (ctx && ctx.state === 'suspended') ctx.resume();
+    au.play().catch(e => {
+      console.warn('Playback error:', e);
+      if (e.name === 'NotAllowedError') {
+        $('sub').textContent = 'Click Play to start music';
+      }
+    });
+  }
+
+  function toggle() {
+    if (idx < 0) {
+      if (tracks.length) load(0, true);
+      return;
+    }
+    au.paused ? start() : au.pause();
+  }
+
   function step(d, auto) {
-    if (!tracks.length) return; let n;
-    if (shuffle && tracks.length > 1) { do { n = Math.floor(Math.random() * tracks.length); } while (n === idx); }
-    else { n = idx + d; if (n >= tracks.length) { if (auto && repeat === 0) { au.pause(); return; } n = 0; } if (n < 0) n = tracks.length - 1; }
+    if (!tracks.length) return;
+    let n;
+    if (shuffle && tracks.length > 1) {
+      do { n = Math.floor(Math.random() * tracks.length); } while (n === idx);
+    } else {
+      n = idx + d;
+      if (n >= tracks.length) {
+        if (auto && repeat === 0) { au.pause(); return; }
+        n = 0;
+      }
+      if (n < 0) n = tracks.length - 1;
+    }
     load(n, true);
   }
+
   function setUI() {
     const p = !au.paused;
     $('mp').classList.toggle('playing', p);
@@ -278,50 +368,127 @@ import { favs, setFavs, onUser, user } from '/assets/auth.js';
     $('pi').innerHTML = p ? ICON.pause : ICON.play;
     $('play').setAttribute('aria-label', p ? 'Pause' : 'Play');
   }
-  au.onplay = au.onpause = () => { setUI(); if (!au.paused && !raf) draw(); };
-  au.onended = () => { if (repeat === 2) { au.currentTime = 0; start(); } else step(1, true); };
+
+  au.onplay = au.onpause = () => {
+    setUI();
+    if (!au.paused && !raf) draw();
+  };
+
+  au.oncanplay = () => {
+    if (candidates[candIdx]) {
+      const cur = candidates[candIdx];
+      if (cur.includes('assets.liversprojects.uk/music/')) {
+        workingBase = ASSETS_BASE + 'music/';
+      } else if (cur.includes('assets.liversprojects.uk/')) {
+        workingBase = ASSETS_BASE;
+      }
+    }
+  };
+
+  au.onerror = () => {
+    if (idx < 0) return;
+    console.warn('Audio load failed on:', au.src);
+    // If failed in CORS mode, retry the same URL in native mode (without CORS) so music still plays
+    if (corsMode) {
+      console.info('Retrying URL in native mode without CORS restriction...');
+      corsMode = false;
+      tryPlayCurrent(true);
+      return;
+    }
+    // If already in native mode, advance to next URL candidate
+    candIdx++;
+    corsMode = true; // reset CORS trial for the next URL candidate
+    if (candIdx < candidates.length) {
+      console.info('Attempting next fallback URL candidate:', candidates[candIdx]);
+      tryPlayCurrent(true);
+    } else {
+      $('sub').textContent = "Couldn't play this file (file missing or network error)";
+    }
+  };
+
+  au.onended = () => {
+    if (repeat === 2) {
+      au.currentTime = 0;
+      start();
+    } else {
+      step(1, true);
+    }
+  };
+
   au.onloadedmetadata = () => { $('dur').textContent = fmt(au.duration); };
   au.ontimeupdate = () => {
     $('cur').textContent = fmt(au.currentTime);
     const p = au.duration ? au.currentTime / au.duration * 1000 : 0;
-    $('seek').value = p; $('seek').style.setProperty('--p', p/10 + '%');
+    $('seek').value = p;
+    $('seek').style.setProperty('--p', p / 10 + '%');
   };
-  au.onerror = () => { if (idx >= 0) { $('sub').textContent = "Couldn't play this file"; } };
+
   $('seek').oninput = e => { if (au.duration) au.currentTime = e.target.value / 1000 * au.duration; };
   const setVol = v => { au.volume = v / 100; $('vol').style.setProperty('--p', v + '%'); };
-  $('vol').oninput = e => setVol(e.target.value); setVol(80);
-  $('play').onclick = toggle; $('next').onclick = () => step(1);
+  $('vol').oninput = e => setVol(e.target.value);
+  setVol(80);
+
+  $('play').onclick = toggle;
+  $('next').onclick = () => step(1);
   $('prev').onclick = () => { if (au.currentTime > 3) au.currentTime = 0; else step(-1); };
   $('shuf').onclick = () => { shuffle = !shuffle; $('shuf').classList.toggle('on', shuffle); };
-  $('rep').onclick = () => { repeat = (repeat + 1) % 3; $('rep').classList.toggle('on', repeat > 0); $('rep').title = 'Repeat: ' + ['off','all','track'][repeat]; };
+  $('rep').onclick = () => {
+    repeat = (repeat + 1) % 3;
+    $('rep').classList.toggle('on', repeat > 0);
+    $('rep').title = 'Repeat: ' + ['off', 'all', 'track'][repeat];
+  };
+
   document.addEventListener('keydown', e => {
-    if (e.code === 'Space' && !/INPUT|BUTTON|TEXTAREA/.test(e.target.tagName)) { e.preventDefault(); toggle(); }
+    if (e.code === 'Space' && !/INPUT|BUTTON|TEXTAREA/.test(e.target.tagName)) {
+      e.preventDefault();
+      toggle();
+    }
   });
+
   if ('mediaSession' in navigator) {
     const m = navigator.mediaSession;
-    m.setActionHandler('play', start); m.setActionHandler('pause', () => au.pause());
-    m.setActionHandler('nexttrack', () => step(1)); m.setActionHandler('previoustrack', () => step(-1));
+    m.setActionHandler('play', start);
+    m.setActionHandler('pause', () => au.pause());
+    m.setActionHandler('nexttrack', () => step(1));
+    m.setActionHandler('previoustrack', () => step(-1));
   }
 
-  /* ---------- visualizer (uses the active site theme's accent) ---------- */
+  /* ---------- visualizer (uses active theme accent, with procedural wave fallback) ---------- */
   const cv = $('viz'), g = cv.getContext('2d');
   function draw() {
     raf = requestAnimationFrame(draw);
     const r = cv.getBoundingClientRect(), dp = devicePixelRatio || 1;
-    if (cv.width !== Math.round(r.width * dp)) { cv.width = r.width * dp; cv.height = r.height * dp; }
+    if (cv.width !== Math.round(r.width * dp)) {
+      cv.width = r.width * dp;
+      cv.height = r.height * dp;
+    }
     const W = cv.width, c = W / 2, R = W * .35;
     g.clearRect(0, 0, W, W);
-    if (an) an.getByteFrequencyData(data);
-    g.lineCap = 'round'; g.lineWidth = W * .012;
+    if (an && data) an.getByteFrequencyData(data);
+    g.lineCap = 'round';
+    g.lineWidth = W * .012;
     g.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#e8542c';
     let live = false;
     for (let i = 0; i < 64; i++) {
-      const v = an ? data[Math.floor(i / 64 * data.length * .75)] / 255 : 0; if (v > .01) live = true;
+      let v = 0;
+      if (an && data) {
+        v = data[Math.floor(i / 64 * data.length * .75)] / 255;
+      }
+      if (v < 0.02 && !au.paused) {
+        v = (Math.sin(Date.now() * 0.007 + i * 0.22) * 0.5 + 0.5) * 0.35 +
+            (Math.sin(Date.now() * 0.014 + i * 0.12) * 0.5 + 0.5) * 0.22;
+      }
+      if (v > .01) live = true;
       const a = i / 64 * Math.PI * 2 - Math.PI / 2, l = W * .015 + v * W * .12;
-      g.beginPath(); g.moveTo(c + Math.cos(a) * R * 1.12, c + Math.sin(a) * R * 1.12);
-      g.lineTo(c + Math.cos(a) * (R * 1.12 + l), c + Math.sin(a) * (R * 1.12 + l)); g.stroke();
+      g.beginPath();
+      g.moveTo(c + Math.cos(a) * R * 1.12, c + Math.sin(a) * R * 1.12);
+      g.lineTo(c + Math.cos(a) * (R * 1.12 + l), c + Math.sin(a) * (R * 1.12 + l));
+      g.stroke();
     }
-    if (au.paused && !live) { cancelAnimationFrame(raf); raf = 0; }
+    if (au.paused && !live) {
+      cancelAnimationFrame(raf);
+      raf = 0;
+    }
   }
   draw();
   init();
